@@ -1,5 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, BeforeInsert, BaseEntity } from "typeorm";
-import * as bcrypt from "bcryptjs";
+import { Entity, PrimaryGeneratedColumn, Column, BaseEntity } from "typeorm";
 
 @Entity()
 export class User extends BaseEntity {
@@ -15,19 +14,15 @@ export class User extends BaseEntity {
     @Column()
     password: string;
 
-    @Column({ default: "Guest" })
-    role: string;
+    @Column({ default: "CC" })
+    documentType: string;
+
+    @Column({ unique: true })
+    documentNumber: string;
 
     @Column({ default: "Active" })
     status: string;
 
-    @BeforeInsert()
-    async beforeInsertActions() {
-        if (this.password) {
-            this.password = await bcrypt.hash(this.password, 10);
-        }
-        if (this.email) {
-            this.email = this.email.toLowerCase();
-        }
-    }
+    @Column({ default: "Guest" })
+    role: string;
 }
