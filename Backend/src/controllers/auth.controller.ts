@@ -4,9 +4,7 @@ import { User } from "../models/User";
 import * as jwt from "jsonwebtoken";
 import * as bcrypt from "bcryptjs";
 
-const userRepository = AppDataSource.getRepository(User);
-
-export const signUp = async (req: Request, res: Response): Promise<void> => { 
+export const signUp = async (req: Request, res: Response): Promise<void> => {
     try {
         const { name, email, password, documentType, documentNumber } = req.body;
 
@@ -16,6 +14,8 @@ export const signUp = async (req: Request, res: Response): Promise<void> => {
         }
 
         const emailLowerCase = email.toLowerCase();
+        const userRepository = AppDataSource.getRepository(User);
+
         const existingUser = await userRepository.findOne({ where: { email: emailLowerCase } });
         if (existingUser) {
             res.status(400).json({ message: "El correo ya está registrado" });
@@ -24,7 +24,7 @@ export const signUp = async (req: Request, res: Response): Promise<void> => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const newUser = userRepository.create({ 
+        const newUser = userRepository.create({
             name,
             email: emailLowerCase,
             password: hashedPassword,
@@ -35,9 +35,10 @@ export const signUp = async (req: Request, res: Response): Promise<void> => {
         });
 
         await userRepository.save(newUser);
-        res.status(201).json({ message: "Usuario registrado exitosamente" });
+
+        res.status(201).json({ message: "Usuario registrado exitosamente", user: { id: newUser.id, name, email } });
     } catch (error) {
-        console.error(error);
+        console.error("Error en signUp:", error);
         res.status(500).json({ message: "Error en el servidor" });
     }
 };
@@ -45,6 +46,13 @@ export const signUp = async (req: Request, res: Response): Promise<void> => {
 export const signIn = async (req: Request, res: Response): Promise<void> => {
     try {
         const { email, password } = req.body;
+
+        if (!email || !password) {
+            res.status(400).json({ message: "Correo y contraseña son requeridos" });
+            return;
+        }
+
+        const userRepository = AppDataSource.getRepository(User);
         const user = await userRepository.findOne({ where: { email } });
 
         if (!user || !(await bcrypt.compare(password, user.password))) {
@@ -52,9 +60,11 @@ export const signIn = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET as string, { expiresIn: "30m" });
-        res.status(200).json({ token });
+        const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET as string, { expiresIn: "30m" });
+
+        res.status(200).json({ message: "Inicio de sesión exitoso", token, user: { id: user.id, name: user.name, email } });
     } catch (error) {
-        res.status(500).json({ message: "Error en el servidor", error });
+        console.error("Error en signIn:", error);
+        res.status(500).json({ message: "Error en el servidor" });
     }
 };
