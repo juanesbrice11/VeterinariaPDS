@@ -1,6 +1,11 @@
+'use client'
 import React from 'react'
 import { useState } from "react";
 import { registerUser } from "@/services/AuthServices"; 
+import { useRouter } from 'next/navigation';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 
 export default function RegisterComponent() {
     const [name, setName] = useState("");
@@ -10,6 +15,7 @@ export default function RegisterComponent() {
     const [documentNumber, setDocumentNumber] = useState("");
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+    const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -25,9 +31,11 @@ export default function RegisterComponent() {
         };
 
         try {
+            console.log(API_URL);
             const data = await registerUser(userData);
             if (data.message) {
                 setMessage(data.message);
+                router.push("/login");
                 setError("");
             } else {
                 setError(data.error || "Error al registrarse");
