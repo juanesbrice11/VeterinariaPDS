@@ -1,8 +1,8 @@
 'use client'
 import React from 'react'
 import { loginUser } from "@/services/AuthServices"; 
-
 import { useState } from "react";
+import { useRouter } from 'next/navigation';
 
 
 export default function LoginComponent() {
@@ -10,6 +10,7 @@ export default function LoginComponent() {
     const [password, setPassword] = useState("");
     const [token, setToken] = useState("");
     const [error, setError] = useState("");
+    const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -17,6 +18,8 @@ export default function LoginComponent() {
             const data = await loginUser({ email, password});
             if (data.token) {
                 setToken(data.token);
+                localStorage.setItem("token", data.token); 
+                router.push("/"); 
                 setError("");
             } else {
                 setError(data.message || "Error al iniciar sesión");
@@ -59,11 +62,6 @@ export default function LoginComponent() {
                     </button>
                 </form>
                 {error && <p className="mt-4 text-red-500">{error}</p>}
-                {token && (
-                    <div className="mt-4 p-4 bg-green-100 rounded">
-                        <p className="text-green-800">Epa!!</p>
-                    </div>
-                )}
             </div>
         </div>
     );
