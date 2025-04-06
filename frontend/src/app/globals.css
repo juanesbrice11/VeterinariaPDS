@@ -24,3 +24,12 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Clases para las fuentes personalizadas */
+.font-instrument-sans {
+  font-family: var(--font-instrument-sans);
+}
+
+.font-otomanopee {
+  font-family: var(--font-otomanopee);
+}
