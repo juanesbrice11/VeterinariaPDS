@@ -79,7 +79,7 @@ export const getMyProfile = async (req: AuthenticatedRequest, res: Response): Pr
             return;
         }
 
-        res.status(200).json({ user });
+        res.status(200).json(user);
     } catch (error) {
         console.error("Error en getMyProfile:", error);
         res.status(500).json({ message: "Error al obtener el perfil" });
