@@ -51,16 +51,6 @@ export const signUp = async (req: Request, res: Response): Promise<void> => {
 
         await userRepository.save(newUser);
 
-        // await sendEmail(
-        //     emailLowerCase,
-        //     "Verifica tu cuenta",
-        //     `
-        //         <p>Hola ${name},</p>
-        //         <p>Gracias por registrarte. Por favor verifica tu cuenta haciendo clic en el siguiente enlace:</p>
-        //         <a href="http://localhost:3000/verify-email?token=${verificationToken}">Verificar cuenta</a>
-        //     `
-        // );
-
         res.status(201).json({
             message: "Usuario registrado exitosamente. Revisa tu correo para verificar tu cuenta.",
             user: { id: newUser.id, name, email: newUser.email }
@@ -122,7 +112,7 @@ export const requestPasswordReset = async (req: Request, res: Response): Promise
         }
 
         const token = crypto.randomBytes(32).toString("hex");
-        const expires = new Date(Date.now() + 1000 * 60 * 60); // 1 hora
+        const expires = new Date(Date.now() + 1000 * 60 * 60); 
 
         user.resetPasswordToken = token;
         user.resetPasswordTokenExpires = expires;
@@ -188,5 +178,23 @@ export const logout = async (req: AuthenticatedRequest, res: Response): Promise<
     } catch (error) {
         console.error("Error en logout:", error);
         res.status(500).json({ message: "Error al cerrar sesión" });
+    }
+};
+
+export const testEmail = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { to } = req.body;
+
+        const html = `
+            <h2>Correo de prueba</h2>
+            <p>¡Hola! Este es un correo de prueba desde la veterinaria 🐾</p>
+        `;
+
+        await sendEmail(to, "Correo de prueba", html);
+
+        res.status(200).json({ message: "Correo enviado correctamente" });
+    } catch (error) {
+        console.error("Error al enviar el correo:", error);
+        res.status(500).json({ message: "Error al enviar el correo" });
     }
 };
