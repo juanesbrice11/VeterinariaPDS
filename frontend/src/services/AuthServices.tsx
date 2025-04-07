@@ -20,6 +20,7 @@ export const registerUser = async (userData: {
   
   export const loginUser = async (userData: {email: string, password: string}) => {
     console.log(userData);
+    console.log(API_URL);
     const response = await fetch(`${API_URL}/auth/signin`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
