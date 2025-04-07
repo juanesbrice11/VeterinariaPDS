@@ -20,8 +20,8 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="es" className={`dark ${instrumentSans.variable} ${otomanopee.variable}`}>
-      <body className="min-h-screen flex flex-col">
+    <html lang="en" className={`dark ${instrumentSans.variable} ${otomanopee.variable}`}>
+      <body>
         {children}
       </body>
     </html>
