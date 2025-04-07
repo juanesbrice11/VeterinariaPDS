@@ -8,6 +8,6 @@ const router = Router();
 
 router.use("/auth", authRoutes);
 router.use("/users", userRoutes);
-router.use('/api/services', serviceRoutes);
+router.use('/services', serviceRoutes);
 
 export default router;
