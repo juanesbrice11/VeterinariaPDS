@@ -48,9 +48,6 @@ export class User extends BaseEntity {
     @Column({ type: "text", nullable: true })
     bio: string ;
 
-    @Column({ type: "text", nullable: true })
-    socialLinks: string ;
-
     @Column({ default: false })
     isVerified: boolean;
 
