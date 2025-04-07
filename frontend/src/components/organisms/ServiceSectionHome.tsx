@@ -3,9 +3,11 @@
 import ServiceCard from '../molecules/ServiceCard';
 import { Dog, Cat, Scissors } from 'lucide-react';
 import Button from '../atoms/Button';
-
+import { services, Service } from '@/data/services';
 
 export default function ServicesSection() {
+  const homeServices = services.slice(0, 3); // Tomamos solo los primeros 3 servicios para la página de inicio
+
   return (
     <section className="text-center py-16 bg-transparent from-orange-50 to-white font-instrument-sans">
       <p className="text-[#FB7B53]  font-bold mb-4 " > Services</p>
@@ -16,24 +18,16 @@ export default function ServicesSection() {
       </h3>
 
       <div className="flex flex-wrap justify-center gap-8 mb-10">
-        <ServiceCard
-          icon={'/assets/dogCareService.png'}
-          title="Dog care"
-          description="Our Dog Care services include grooming, walking, boarding, and training. We ensure your furry friend is happy, healthy."
-          bgColor="bg-[#97F597]"
-        />
-        <ServiceCard
-          icon={'/assets/catCareService.png'}
-          title="Cat care"
-          description="We offer specialized cat care services including grooming, boarding, and in-home visits. Our dedicated team is here for you."
-          bgColor="bg-[#FB7B53]"
-        />
-        <ServiceCard
-          icon={'/assets/dogPetGroomingService.png'}
-          title="Pet Grooming"
-          description="Keep your pets looking their best with full-service grooming. From baths to nail trims, our expert groomers do it all!"
-          bgColor="bg-[#67E4FF]"
-        />
+        {homeServices.map((service: Service) => (
+          <ServiceCard
+            key={service.id}
+            id={service.id}
+            icon={service.icon}
+            title={service.title}
+            description={service.description}
+            bgColor={service.bgColor}
+          />
+        ))}
       </div>
 
       <Button variant="primary" >
