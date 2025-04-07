@@ -1,23 +1,24 @@
 'use client'
-import React from 'react'
+import React, { useRef } from 'react'
 import { loginUser } from "@/services/AuthServices"; 
 import { useState } from "react";
 import { useRouter } from 'next/navigation';
+import Button from '../atoms/Button';
 
 
 export default function LoginComponent() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [token, setToken] = useState("");
     const [error, setError] = useState("");
     const router = useRouter();
+    const formRef = useRef<HTMLFormElement>(null);
+    
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             const data = await loginUser({ email, password});
             if (data.token) {
-                setToken(data.token);
                 localStorage.setItem("token", data.token); 
                 router.push("/"); 
                 setError("");
@@ -54,12 +55,13 @@ export default function LoginComponent() {
                             required
                         />
                     </div>
-                    <button
-                        type="submit"
-                        className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+                    <Button
+                        fullWidth
+                        variant='primary'
+                        onClick={() => formRef.current?.requestSubmit()}
                     >
                         Iniciar Sesión
-                    </button>
+                    </Button>
                 </form>
                 {error && <p className="mt-4 text-red-500">{error}</p>}
             </div>
