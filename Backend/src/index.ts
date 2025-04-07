@@ -4,6 +4,9 @@ import dotenv from "dotenv";
 import { AppDataSource } from "./config/ormconfig";
 import routes from "./routes";
 import cors from "cors";
+import swaggerUi from 'swagger-ui-express';
+import YAML from 'yamljs';
+import path from "path";
 
 dotenv.config();
 
@@ -15,7 +18,11 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
-app.use("/api", routes);
+const swaggerDocument = YAML.load(path.resolve(__dirname, '../docs/swagger.yaml'));
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+app.use('/api', routes);
 
 const PORT = process.env.PORT || 5000;
 
