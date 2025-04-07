@@ -119,7 +119,7 @@ export const requestPasswordReset = async (req: Request, res: Response): Promise
 
         await userRepository.save(user);
 
-        const resetLink = `http://localhost:3000/reset-password?token=${token}`;
+        const resetLink = `http://localhost:3001/reset?token=${token}`;
         const html = `
             <p>Hola ${user.name},</p>
             <p>Solicitaste un cambio de contraseña.</p>
