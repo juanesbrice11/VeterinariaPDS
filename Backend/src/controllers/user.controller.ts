@@ -3,6 +3,7 @@ import { User } from "../models/User";
 import { AppDataSource } from "../config/ormconfig";
 import { AuthenticatedRequest } from "../middlewares/authenticateToken";
 import * as bcrypt from "bcryptjs";
+import { validationResult } from "express-validator";
 
 export const getUsers = async (req: Request, res: Response) => {
     try {
@@ -18,40 +19,37 @@ export const getUsers = async (req: Request, res: Response) => {
 };
 
 export const editProfile = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        res.status(400).json({ errors: errors.array() });
+        return;
+    }
+
     try {
         const userRepository = AppDataSource.getRepository(User);
-        const user = await userRepository.findOne({ where: { id: req.user?.id }
-        });
+        const user = await userRepository.findOne({ where: { id: req.user?.id } });
 
         if (!user) {
-            res.status(404).json({ message: "Usuario no encontrado" });
+            res.status(404).json({ message: 'Usuario no encontrado' });
             return;
         }
 
-        const {
-            name,
-            phone,
-            birthDate,
-            gender,
-            address,
-            bio,
-            socialLinks
-        } = req.body;
+        const { name, email, phone, birthDate, gender, address, bio } = req.body;
 
         if (name) user.name = name;
+        if (email) user.email = email;
         if (phone) user.phone = phone;
         if (birthDate) user.birthDate = birthDate;
         if (gender) user.gender = gender;
         if (address) user.address = address;
         if (bio) user.bio = bio;
-        if (socialLinks) user.socialLinks = socialLinks;
 
         await userRepository.save(user);
 
-        res.status(200).json({ message: "Perfil actualizado correctamente", user });
+        res.status(200).json({ message: 'Perfil actualizado correctamente', user });
     } catch (error) {
-        console.error("Error en editProfile:", error);
-        res.status(500).json({ message: "Error al actualizar el perfil" });
+        console.error('Error en editProfile:', error);
+        res.status(500).json({ message: 'Error al actualizar el perfil' });
     }
 };
 
@@ -69,7 +67,6 @@ export const getMyProfile = async (req: AuthenticatedRequest, res: Response): Pr
                 "gender",
                 "address",
                 "bio",
-                "socialLinks",
                 "status",
                 "role",
                 "createdAt",
@@ -101,7 +98,7 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response): 
         }
 
         const userRepository = AppDataSource.getRepository(User);
-        const user = await userRepository.findOne({ where: { id: req.user?.id }});
+        const user = await userRepository.findOne({ where: { id: req.user?.id } });
 
         if (!user) {
             res.status(404).json({ message: "Usuario no encontrado" });

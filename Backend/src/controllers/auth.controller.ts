@@ -12,7 +12,7 @@ export const signUp = async (req: Request, res: Response): Promise<void> => {
     try {
         const {
             name, email, password, documentType, documentNumber,
-            phone, birthDate, gender, address, bio, socialLinks
+            phone, birthDate, gender, address, bio
         } = req.body;
 
         if (!name || !email || !password || !documentNumber) {
@@ -43,7 +43,6 @@ export const signUp = async (req: Request, res: Response): Promise<void> => {
             gender: gender || null,
             address: address || null,
             bio: bio || null,
-            socialLinks: typeof socialLinks === "object" ? JSON.stringify(socialLinks) : socialLinks || null,
             verificationToken,
             isVerified: false,
             status: "Active",
@@ -51,6 +50,16 @@ export const signUp = async (req: Request, res: Response): Promise<void> => {
         });
 
         await userRepository.save(newUser);
+
+        // await sendEmail(
+        //     emailLowerCase,
+        //     "Verifica tu cuenta",
+        //     `
+        //         <p>Hola ${name},</p>
+        //         <p>Gracias por registrarte. Por favor verifica tu cuenta haciendo clic en el siguiente enlace:</p>
+        //         <a href="http://localhost:3000/verify-email?token=${verificationToken}">Verificar cuenta</a>
+        //     `
+        // );
 
         res.status(201).json({
             message: "Usuario registrado exitosamente. Revisa tu correo para verificar tu cuenta.",
