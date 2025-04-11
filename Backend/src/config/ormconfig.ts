@@ -1,5 +1,6 @@
 import { DataSource } from "typeorm";
 import dotenv from "dotenv";
+import path from "path";
 
 dotenv.config();
 
@@ -10,11 +11,16 @@ export const AppDataSource = new DataSource({
     username: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    entities: ["src/models/*.ts"],
-    synchronize: false,
-    logging: false,
+    entities: [path.join(__dirname, "../models/**/*.{ts,js}")],
+    synchronize: process.env.NODE_ENV === 'test',
+    logging: process.env.NODE_ENV === 'test',
+    dropSchema: process.env.NODE_ENV === 'test',
+    migrations: [],
+    subscribers: [],
 });
 
-AppDataSource.initialize()
-    .then(() => console.log("📌 Base de datos conectada correctamente"))
-    .catch((err) => console.error("❌ Error al conectar la BD:", err));
+if (process.env.NODE_ENV !== 'test') {
+    AppDataSource.initialize()
+        .then(() => console.log("📌 Base de datos conectada correctamente"))
+        .catch((err) => console.error("❌ Error al conectar la BD:", err));
+}
