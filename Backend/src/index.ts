@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { AppDataSource } from "./config/ormconfig";
-import authRoutes from "./routes/auth.routes";
+import routes from "./routes/index";
 import dotenv from "dotenv";
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
@@ -20,7 +20,7 @@ const swaggerDocument = YAML.load(path.resolve(__dirname, '../docs/swagger.yaml'
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Rutas
-app.use("/auth", authRoutes);
+app.use("/api", routes);
 
 // Inicializar la conexión a la base de datos
 const initializeApp = async () => {
