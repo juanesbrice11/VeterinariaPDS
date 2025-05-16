@@ -6,6 +6,9 @@ import dotenv from "dotenv";
 import swaggerUi from 'swagger-ui-express';
 import YAML from 'yamljs';
 import path from "path";
+import { startNotificationCron } from './schedulers/notifications.cron';
+
+
 
 dotenv.config();
 
@@ -39,6 +42,7 @@ const initializeApp = async () => {
 // Solo inicializar la aplicación si no estamos en modo test
 if (process.env.NODE_ENV !== 'test') {
     initializeApp();
+    startNotificationCron(); 
 }
 
 export { app, initializeApp };
