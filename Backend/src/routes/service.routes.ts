@@ -6,13 +6,15 @@ import {
     updateService,
     deactivateService,
 } from '../controllers/service.controller';
+import authenticateToken from '../middlewares/authenticateToken';
+import { authorizeRoles } from '../middlewares/authorizeRoles';
 
 const router = Router();
 
-router.post('/', createService);
-router.get('/', getAllServices);
-router.get('/:id', getServiceById);
-router.put('/:id', updateService);
-router.delete('/:id', deactivateService);
+router.get('/', authenticateToken, getAllServices);
+router.get('/:id', authenticateToken, getServiceById);
+router.post('/', authenticateToken, authorizeRoles('Admin'), createService);
+router.put('/:id', authenticateToken, authorizeRoles('Admin'), updateService);
+router.delete('/:id', authenticateToken, authorizeRoles('Admin'), deactivateService);
 
 export default router;

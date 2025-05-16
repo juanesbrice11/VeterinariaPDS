@@ -1,58 +1,103 @@
 import { Request, Response } from 'express';
+import { AppDataSource } from '../config/ormconfig';
 import { Product } from '../models/product';
 
-export const getAllProducts = async (req: Request, res: Response) =>{
+// Obtener todos los productos
+export const getAllProducts = async (_req: Request, res: Response): Promise<void> => {
     try {
-        const products = await Product.find();
-        res.json(products);
-    } catch (err) {
-        res.status(500).json({ message: 'Error fetching products', error: err });
+        const productRepo = AppDataSource.getRepository(Product);
+        const products = await productRepo.find();
+        res.status(200).json(products);
+    } catch (error) {
+        console.error('Error al obtener productos:', error);
+        res.status(500).json({ message: 'Error del servidor' });
     }
-}
+};
 
+// Obtener producto por ID
 export const getProductById = async (req: Request, res: Response): Promise<void> => {
     try {
-        const product = await Product.findOneBy({ id: Number(req.params.id) });
-        if (!product)  res.status(404).json({ message: 'Product not found' });
-        return
-    } catch (err) {
-        res.status(500).json({ message: 'Error fetching product', error: err });
-    }
-}
+        const { id } = req.params;
+        const productRepo = AppDataSource.getRepository(Product);
+        const product = await productRepo.findOne({ where: { id: parseInt(id) } });
 
-export const createProduct = async (req: Request, res: Response) => {
+        if (!product) {
+            res.status(404).json({ message: 'Producto no encontrado' });
+            return;
+        }
+
+        res.status(200).json(product);
+    } catch (error) {
+        console.error('Error al obtener producto por ID:', error);
+        res.status(500).json({ message: 'Error del servidor' });
+    }
+};
+
+// Crear producto
+export const createProduct = async (req: Request, res: Response): Promise<void> => {
     try {
         const { name, description, price, imageUrl, stock } = req.body;
-        const product = Product.create({ name, description, price, imageUrl, stock });
-        await product.save();
-        res.status(201).json(product);
-    } catch (err) {
-        res.status(400).json({ message: 'Error creating product', error: err });
-    }
-}
 
-export const updateProduct = async (req: Request, res: Response): Promise<void> => { 
+        if (!name || !description || price == null) {
+            res.status(400).json({ message: 'Nombre, descripción y precio son requeridos' });
+            return;
+        }
+
+        const productRepo = AppDataSource.getRepository(Product);
+        const newProduct = productRepo.create({ name, description, price, imageUrl, stock });
+
+        await productRepo.save(newProduct);
+        res.status(201).json({ message: 'Producto creado exitosamente', product: newProduct });
+    } catch (error) {
+        console.error('Error al crear el producto:', error);
+        res.status(500).json({ message: 'Error del servidor' });
+    }
+};
+
+// Actualizar producto
+export const updateProduct = async (req: Request, res: Response): Promise<void> => {
     try {
-        const id = Number(req.params.id);
-        const product = await Product.findOneBy({ id });
-        if (!product) return res.status(404).json({ message: 'Product not found' });
+        const { id } = req.params;
+        const { name, description, price, imageUrl, stock, isActive } = req.body;
 
-        Object.assign(product, req.body);
-        await product.save();
-        res.json(product);
-    } catch (err) {
-        res.status(400).json({ message: 'Error updating product', error: err });
+        const productRepo = AppDataSource.getRepository(Product);
+        const product = await productRepo.findOne({ where: { id: parseInt(id) } });
+
+        if (!product) {
+            res.status(404).json({ message: 'Producto no encontrado' });
+            return;
+        }
+
+        product.name = name ?? product.name;
+        product.description = description ?? product.description;
+        product.price = price ?? product.price;
+        product.imageUrl = imageUrl ?? product.imageUrl;
+        product.stock = stock ?? product.stock;
+        product.isActive = isActive ?? product.isActive;
+
+        await productRepo.save(product);
+        res.status(200).json({ message: 'Producto actualizado', product });
+    } catch (error) {
+        console.error('Error al actualizar producto:', error);
+        res.status(500).json({ message: 'Error del servidor' });
     }
-}
+};
 
-export const deleteProduct = async (req: Request, res: Response) => {
+// Eliminar producto
+export const deleteProduct = async (req: Request, res: Response): Promise<void> => {
     try {
-        const id = Number(req.params.id);
-        const result = await Product.delete(id);
-        if (result.affected === 0) return res.status(404).json({ message: 'Product not found' });
-        res.json({ message: 'Product deleted' });
-    } catch (err) {
-        res.status(400).json({ message: 'Error deleting product', error: err });
-    }
-}
+        const { id } = req.params;
+        const productRepo = AppDataSource.getRepository(Product);
+        const result = await productRepo.delete(parseInt(id));
 
+        if (result.affected === 0) {
+            res.status(404).json({ message: 'Producto no encontrado' });
+            return;
+        }
+
+        res.status(200).json({ message: 'Producto eliminado correctamente' });
+    } catch (error) {
+        console.error('Error al eliminar producto:', error);
+        res.status(500).json({ message: 'Error del servidor' });
+    }
+};
