@@ -11,8 +11,8 @@ import { authorizeRoles } from '../middlewares/authorizeRoles';
 
 const router = Router();
 
-router.get('/', authenticateToken, getAllServices);
-router.get('/:id', authenticateToken, getServiceById);
+router.get('/', getAllServices);
+router.get('/:id', getServiceById);
 router.post('/', authenticateToken, authorizeRoles('Admin'), createService);
 router.put('/:id', authenticateToken, authorizeRoles('Admin'), updateService);
 router.delete('/:id', authenticateToken, authorizeRoles('Admin'), deactivateService);

@@ -125,6 +125,41 @@ paths:
         '200':
           description: Perfil actualizado
 
+  /users/{documentNumber}/role:
+    put:
+      summary: Actualizar rol de un usuario
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: documentNumber
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role
+              properties:
+                role:
+                  type: string
+                  enum: [Guest, Client, Veterinario, Admin]
+      responses:
+        '200':
+          description: Rol actualizado correctamente
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /users/me/password:
     patch:
       summary: Cambiar mi contraseña
@@ -379,7 +414,7 @@ paths:
                 color:
                   type: string
                 birthDate:
-                  type: string
+                  type: 2020/01/15
                 gender:
                   type: string
                 weight:
@@ -401,6 +436,52 @@ paths:
       responses:
         '200':
           description: Mascota eliminada
+  
+  /pets/Secretary:
+    post:
+      summary: Crear una mascota
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                species:
+                  type: string
+                breed:
+                  type: string
+                color:
+                  type: string
+                birthDate:
+                  type: 2020/01/15
+                gender:
+                  type: string
+                weight:
+                  type: number
+                ownerId:
+                  type: number
+      responses:
+        '201':
+          description: Mascota creada
+
+  /pets/Secretary/{id}:
+    get:
+      summary: Obtener mascota por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos de la mascota
 
   /medical-records:
     post:
@@ -519,13 +600,11 @@ paths:
           required: false
           schema:
             type: integer
-          description: Página a consultar (default: 1)
         - name: limit
           in: query
           required: false
           schema:
             type: integer
-          description: Número de resultados por página (default: 10)
       responses:
         '200':
           description: Lista de notificaciones paginadas

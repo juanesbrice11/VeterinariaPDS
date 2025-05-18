@@ -12,7 +12,7 @@ export const signUp = async (req: Request, res: Response): Promise<void> => {
     try {
         const {
             name, email, password, documentType, documentNumber,
-            phone, birthDate, gender, address, bio
+            phone, birthDate, gender, address, bio, role
         } = req.body;
 
         if (!name || !email || !password || !documentNumber) {
@@ -45,9 +45,12 @@ export const signUp = async (req: Request, res: Response): Promise<void> => {
             bio: bio || null,
             verificationToken,
             isVerified: false,
-            status: "Active",
-            role: "Guest",
+            status: "Active"
         });
+
+        if (role){
+            newUser.role = role
+        }
 
         await userRepository.save(newUser);
 
