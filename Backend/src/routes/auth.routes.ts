@@ -4,7 +4,7 @@
     import { requestPasswordReset, resetPassword } from "../controllers/auth.controller";
     import { logout } from "../controllers/auth.controller";
     import authenticateToken from "../middlewares/authenticateToken";
-    import { testEmail } from "../controllers/auth.controller";
+    import { testEmail, validateToken } from "../controllers/auth.controller";
 
     const router = Router();
 
@@ -18,5 +18,7 @@
     router.post("/reset-password", resetPassword);
 
     router.post("/test-email", testEmail);
+
+    router.get("/validate", authenticateToken, validateToken);
 
     export default router;
