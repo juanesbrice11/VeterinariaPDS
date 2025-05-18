@@ -1,6 +1,7 @@
 import './globals.css';
 import { Instrument_Sans, Noto_Sans_JP } from 'next/font/google';
 import { AuthProvider } from '@/context/AuthContext';
+import { Toaster } from 'react-hot-toast';
 
 const instrumentSans = Instrument_Sans({
   weight: ['400', '500', '700'],
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <AuthProvider>
           {children}
+          <Toaster position="top-center" />
         </AuthProvider>
       </body>
     </html>

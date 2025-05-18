@@ -1,19 +1,144 @@
-    'use client'
+'use client'
 import React, { useState } from 'react';
 import { registerUser } from "@/services/AuthServices";
 import { useRouter } from 'next/navigation';
 import { RegisterUserData } from '@/types/schemas';
 import GenericForm, { FormField } from '@/components/organisms/GenericForm';
+import { withAuthRedirect } from '@/components/hoc/withAuthRedirect';
 
-export default function RegisterComponent() {
+function RegisterComponent() {
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
 
     const today = new Date().toISOString().split("T")[0];
     const minDate = new Date();
     minDate.setFullYear(minDate.getFullYear() - 100);
     const minDateStr = minDate.toISOString().split("T")[0];
+
+    const validatePassword = (value: string) => {
+        if (value.length < 8) {
+            return 'Password must be at least 8 characters long';
+        }
+        if (!/[A-Z]/.test(value)) {
+            return 'Password must contain at least one uppercase letter';
+        }
+        if (!/[a-z]/.test(value)) {
+            return 'Password must contain at least one lowercase letter';
+        }
+        if (!/[0-9]/.test(value)) {
+            return 'Password must contain at least one number';
+        }
+        if (!/[!@#$%^&*]/.test(value)) {
+            return 'Password must contain at least one special character (!@#$%^&*)';
+        }
+        return null;
+    };
+
+    const fields: FormField[] = [
+        {
+            name: 'name',
+            label: 'Name',
+            type: 'text',
+            required: true,
+            placeholder: 'Enter your name',
+            fullWidth: true
+        },
+        {
+            name: 'email',
+            label: 'Email',
+            type: 'email',
+            required: true,
+            placeholder: 'Enter your email',
+            fullWidth: true
+        },
+        {
+            name: 'password',
+            label: 'Password',
+            type: showPassword ? 'text' : 'password',
+            required: true,
+            placeholder: 'Enter your password',
+            validation: validatePassword,
+            fullWidth: true,
+            showPasswordToggle: true,
+            onTogglePassword: () => setShowPassword(!showPassword)
+        },
+        {
+            name: 'phone',
+            label: 'Phone',
+            type: 'text',
+            required: true,
+            placeholder: 'Enter your phone number',
+            fullWidth: true
+        },
+        {
+            name: 'birthDate',
+            label: 'Birth Date',
+            type: 'date',
+            required: true,
+            max: today,
+            validation: (value) => {
+                const date = new Date(value);
+                if (date > new Date(today)) {
+                    return 'Date cannot be in the future';
+                }
+                if (date < new Date(minDateStr)) {
+                    return 'Date cannot be more than 100 years ago';
+                }
+                return null;
+            },
+            fullWidth: true
+        },
+        {
+            name: 'gender',
+            label: 'Gender',
+            type: 'select',
+            required: true,
+            options: [
+                { value: 'M', label: 'Male' },
+                { value: 'F', label: 'Female' },
+                { value: 'O', label: 'Other' }
+            ],
+            fullWidth: true
+        },
+        {
+            name: 'documentType',
+            label: 'ID Type',
+            type: 'select',
+            required: true,
+            options: [
+                { value: 'CC', label: 'CC' },
+                { value: 'TI', label: 'TI' },
+                { value: 'CE', label: 'CE' }
+            ],
+            fullWidth: true
+        },
+        {
+            name: 'documentNumber',
+            label: 'ID Number',
+            type: 'text',
+            required: true,
+            placeholder: 'Enter your ID number',
+            fullWidth: true
+        },
+        {
+            name: 'address',
+            label: 'Address',
+            type: 'text',
+            required: true,
+            placeholder: 'Enter your address',
+            fullWidth: true
+        },
+        {
+            name: 'bio',
+            label: 'Bio',
+            type: 'text',
+            required: true,
+            placeholder: 'Tell us about yourself',
+            fullWidth: true
+        }
+    ];
 
     const handleSubmit = async (formData: Record<string, any>) => {
         try {
@@ -44,93 +169,6 @@ export default function RegisterComponent() {
         }
     };
 
-    const fields: FormField[] = [
-        {
-            name: 'name',
-            label: 'Name',
-            type: 'text',
-            required: true,
-        },
-        {
-            name: 'email',
-            label: 'Email',
-            type: 'email',
-            required: true,
-        },
-        {
-            name: 'password',
-            label: 'Password',
-            type: 'password',
-            required: true,
-        },
-        {
-            name: 'phone',
-            label: 'Phone',
-            type: 'text',
-            required: true,
-        },
-        {
-            name: 'birthDate',
-            label: 'Birth Date',
-            type: 'date',
-            required: true,
-            max: today,
-            validation: (value) => {
-                const date = new Date(value);
-                if (date > new Date(today)) {
-                    return 'La fecha no puede ser futura';
-                }
-                if (date < new Date(minDateStr)) {
-                    return 'La fecha no puede ser mayor a 100 años';
-                }
-                return null;
-            }
-        },
-        {
-            name: 'gender',
-            label: 'Gender',
-            type: 'select',
-            required: true,
-            options: [
-                { value: '', label: 'Select' },
-                { value: 'M', label: 'Male' },
-                { value: 'F', label: 'Female' },
-                { value: 'O', label: 'Other' }
-            ]
-        },
-        {
-            name: 'documentType',
-            label: 'ID Type',
-            type: 'select',
-            required: true,
-            options: [
-                { value: 'CC', label: 'CC' },
-                { value: 'TI', label: 'TI' },
-                { value: 'CE', label: 'CE' }
-            ]
-        },
-        {
-            name: 'documentNumber',
-            label: 'ID Number',
-            type: 'text',
-            required: true,
-        },
-        {
-            name: 'address',
-            label: 'Address',
-            type: 'text',
-            required: true,
-            fullWidth: true,
-        },
-        {
-            name: 'bio',
-            label: 'Bio',
-            type: 'text',
-            required: true,
-            fullWidth: true,
-        },
-    ];
-
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
             <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-2xl text-black">
@@ -144,7 +182,20 @@ export default function RegisterComponent() {
 
                 {error && <p className="mt-4 text-red-500">{error}</p>}
                 {message && <p className="mt-4 text-green-500">{message}</p>}
+
+                <div className="mt-4 text-sm text-gray-600">
+                    <p>Password requirements:</p>
+                    <ul className="list-disc list-inside mt-2">
+                        <li>Minimum 8 characters</li>
+                        <li>At least one uppercase letter</li>
+                        <li>At least one lowercase letter</li>
+                        <li>At least one number</li>
+                        <li>At least one special character (!@#$%^&*)</li>
+                    </ul>
+                </div>
             </div>
         </div>
     );
 }
+
+export default withAuthRedirect(RegisterComponent);

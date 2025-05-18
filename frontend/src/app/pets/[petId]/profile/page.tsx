@@ -9,7 +9,6 @@ export default function PetProfilePage() {
   const petId = params.petId as string; // Extract petId from URL parameters
 
   if (!petId) {
-    // Handle the case where petId is not available, e.g., show a loading state or an error
     return <p>Loading pet profile or pet not found...</p>;
   }
 

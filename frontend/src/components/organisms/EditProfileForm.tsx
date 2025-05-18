@@ -1,174 +1,117 @@
 'use client'
 
 import { useState } from 'react'
-import Button from '../atoms/Button'
 import { UserProfile } from '@/types/schemas'
 import { useRouter } from 'next/navigation'
 import { useUserServices } from '@/hooks/useUserServices'
+import GenericForm, { FormField } from './GenericForm'
+import { toast } from 'react-hot-toast'
 
 type EditProfileFormProps = {
     initialData: UserProfile
 }
 
 export default function EditProfileForm({ initialData }: EditProfileFormProps) {
-    const [formData, setFormData] = useState<UserProfile>(initialData);
-    const [success, setSuccess] = useState('');
     const router = useRouter();
     const { updateUserProfile, isLoading, error, clearError } = useUserServices();
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        clearError()
-        setSuccess('')
+    const fields: FormField[] = [
+        {
+            name: 'name',
+            label: 'Name',
+            type: 'text',
+            required: true,
+            placeholder: 'Enter your name'
+        },
+        {
+            name: 'email',
+            label: 'Email',
+            type: 'email',
+            required: true,
+            placeholder: 'Enter your email'
+        },
+        {
+            name: 'phone',
+            label: 'Phone',
+            type: 'text',
+            placeholder: 'Enter your phone number'
+        },
+        {
+            name: 'birthDate',
+            label: 'Birth Date',
+            type: 'date',
+            placeholder: 'Select your birth date'
+        },
+        {
+            name: 'gender',
+            label: 'Gender',
+            type: 'select',
+            options: [
+                { value: 'M', label: 'Male' },
+                { value: 'F', label: 'Female' },
+                { value: 'O', label: 'Other' }
+            ]
+        },
+        {
+            name: 'address',
+            label: 'Address',
+            type: 'text',
+            placeholder: 'Enter your address',
+            fullWidth: true
+        },
+        {
+            name: 'bio',
+            label: 'Bio',
+            type: 'text',
+            placeholder: 'Tell us about yourself',
+            fullWidth: true
+        }
+    ];
+
+    const handleSubmit = async (formData: Record<string, any>) => {
+        clearError();
 
         try {
-            const formattedData = {
-                ...formData,
-                birthDate: formData.birthDate.toString().split('T')[0],
-            }
+            const formattedData: UserProfile = {
+                name: formData.name || initialData.name,
+                email: formData.email || initialData.email,
+                phone: formData.phone || initialData.phone,
+                gender: formData.gender || initialData.gender,
+                address: formData.address || initialData.address,
+                bio: formData.bio || initialData.bio,
+                birthDate: formData.birthDate ? formData.birthDate.toString().split('T')[0] : initialData.birthDate
+            };
             
             const success = await updateUserProfile(formattedData);
             
             if (success) {
-                setSuccess('Profile updated successfully');
+                toast.success('Profile updated successfully');
                 setTimeout(() => {
                     window.location.reload();
                 }, 1500);
             }
         } catch (err) {
-            console.error('Error updating profile:', err)
+            console.error('Error updating profile:', err);
+            toast.error('Failed to update profile');
         }
-    }
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target
-        setFormData(prev => ({ ...prev, [name]: value }))
-    }
+    };
 
     return (
         <div className="bg-white rounded-lg shadow-md p-6 max-w-2xl mx-auto">
             <h2 className="text-2xl font-bold mb-6 text-center">Edit Profile</h2>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Name*
-                        </label>
-                        <input
-                            type="text"
-                            name="name"
-                            value={formData.name}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2A3287]"
-                            required
-                        />
-                    </div>
+            <GenericForm
+                fields={fields}
+                onSubmit={handleSubmit}
+                submitButtonText={isLoading ? "Updating..." : "Save changes"}
+                initialValues={initialData}
+            />
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Email*
-                        </label>
-                        <input
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2A3287]"
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Phone
-                        </label>
-                        <input
-                            type="tel"
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2A3287]"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Birthdate
-                        </label>
-                        <input
-                            type="date"
-                            name="birthDate"
-                            value={formData.birthDate ? new Date(formData.birthDate).toISOString().split('T')[0] : ''}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2A3287]"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Gender
-                        </label>
-                        <select
-                            name="gender"
-                            value={formData.gender}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2A3287]"
-                        >
-                            <option value="M">Male</option>
-                            <option value="F">Female</option>
-                            <option value="O">Other</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Address
-                        </label>
-                        <input
-                            type="text"
-                            name="address"
-                            value={formData.address}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2A3287]"
-                        />
-                    </div>
+            {error && (
+                <div className="mt-4 text-red-500 text-sm p-2 bg-red-50 rounded-md">
+                    {error}
                 </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Bio
-                    </label>
-                    <textarea
-                        name="bio"
-                        value={formData.bio}
-                        onChange={handleChange}
-                        rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2A3287]"
-                    />
-                </div>
-
-                {error && (
-                    <div className="text-red-500 text-sm p-2 bg-red-50 rounded-md">
-                        {error}
-                    </div>
-                )}
-
-                {success && (
-                    <div className="text-green-600 text-sm p-2 bg-green-50 rounded-md">
-                        {success}
-                    </div>
-                )}
-
-                <div className="flex justify-end gap-4 pt-4">
-                    <Button
-                        variant="primary"
-                        disabled={isLoading}
-                    >
-                        {isLoading ? 'Updating...' : 'Save changes'}
-                    </Button>
-                </div>
-            </form>
+            )}
         </div>
-    )
+    );
 }
