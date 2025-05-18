@@ -38,7 +38,7 @@ export type UserProfile = {
 }
 
 export interface Pet {
-    id?: string;
+    id?: number;
     name: string;
     species: string;
     breed?: string;
@@ -46,16 +46,20 @@ export interface Pet {
     birthDate?: string;
     gender?: string;
     weight?: number;
+    ownerId?: number;
+    createdAt?: string;
+    updatedAt?: string;
     imageUrl?: string;
 }
 
 export interface PetResponse {
-    data?: Pet;
+    message?: string;
+    pet?: Pet;
     error?: string;
-    success?: boolean;
 }
 
 export interface PetsListResponse {
     data?: Pet[];
     error?: string;
+    message?: string;
 }

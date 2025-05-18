@@ -1,119 +1,134 @@
 'use client'
 
-import { useState } from 'react'
-import Button from '../atoms/Button'
-import { useUserServices } from '@/hooks/useUserServices'
+import React, { useState } from 'react'
+import { updatePassword } from '@/services/UserServices'
+import GenericForm, { FormField } from './GenericForm'
+import { toast } from 'react-hot-toast'
 
-export default function ChangePasswordForm() {
-    const [currentPassword, setCurrentPassword] = useState('')
-    const [newPassword, setNewPassword] = useState('')
-    const [confirmPassword, setConfirmPassword] = useState('')
-    const [success, setSuccess] = useState('')
-    const { changePassword, isLoading, error, clearError } = useUserServices()
+const ChangePasswordForm: React.FC = () => {
+    const [formError, setFormError] = useState<string | null>(null);
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        clearError()
-        setSuccess('')
+    const validatePassword = (value: string) => {
+        if (value.length < 8) {
+            return 'La contraseña debe tener al menos 8 caracteres';
+        }
+        if (!/[A-Z]/.test(value)) {
+            return 'La contraseña debe contener al menos una letra mayúscula';
+        }
+        if (!/[a-z]/.test(value)) {
+            return 'La contraseña debe contener al menos una letra minúscula';
+        }
+        if (!/[0-9]/.test(value)) {
+            return 'La contraseña debe contener al menos un número';
+        }
+        if (!/[!@#$%^&*]/.test(value)) {
+            return 'La contraseña debe contener al menos un carácter especial (!@#$%^&*)';
+        }
+        return null;
+    };
 
-        if (newPassword !== confirmPassword) {
-            clearError()
-            return
+    const fields: FormField[] = [
+        {
+            name: 'currentPassword',
+            label: 'Contraseña Actual',
+            type: showCurrentPassword ? 'text' : 'password',
+            required: true,
+            placeholder: 'Ingresa tu contraseña actual',
+            fullWidth: true,
+            showPasswordToggle: true,
+            onTogglePassword: () => setShowCurrentPassword(!showCurrentPassword)
+        },
+        {
+            name: 'newPassword',
+            label: 'Nueva Contraseña',
+            type: showNewPassword ? 'text' : 'password',
+            required: true,
+            placeholder: 'Ingresa tu nueva contraseña',
+            validation: validatePassword,
+            fullWidth: true,
+            showPasswordToggle: true,
+            onTogglePassword: () => setShowNewPassword(!showNewPassword)
+        },
+        {
+            name: 'confirmPassword',
+            label: 'Confirmar Nueva Contraseña',
+            type: showConfirmPassword ? 'text' : 'password',
+            required: true,
+            placeholder: 'Confirma tu nueva contraseña',
+            validation: (value: string, formData?: Record<string, any>) => {
+                if (!formData?.newPassword) return 'Falta la nueva contraseña';
+                if (value !== formData.newPassword) {
+                    return 'Las contraseñas no coinciden';
+                }
+                return null;
+            },
+            fullWidth: true,
+            showPasswordToggle: true,
+            onTogglePassword: () => setShowConfirmPassword(!showConfirmPassword)
+        }
+    ];
+
+    const handleSubmit = async (formData: Record<string, any>) => {
+        setFormError(null);
+
+        if (formData.newPassword !== formData.confirmPassword) {
+            setFormError('Las contraseñas no coinciden');
+            return;
         }
 
-        if (newPassword.length < 8) {
-            clearError()
-            return
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setFormError('No se encontró el token de autenticación');
+            return;
         }
 
         try {
-            const success = await changePassword(currentPassword, newPassword);
+            const response = await updatePassword(formData.currentPassword, formData.newPassword, token);
             
-            if (success) {
-                setSuccess('Password changed successfully')
-                setCurrentPassword('')
-                setNewPassword('')
-                setConfirmPassword('')
+            if (response.error) {
+                setFormError(response.error);
+                return;
             }
-        } catch (err) {
-            console.error('Error changing password:', err)
+
+            toast.success('Contraseña actualizada exitosamente');
+            window.location.reload();
+        } catch (error) {
+            console.error('Error al actualizar la contraseña:', error);
+            setFormError('Error al actualizar la contraseña');
         }
-    }
+    };
 
     return (
-        <div className="bg-white rounded-lg shadow-md p-6 max-w-md mx-auto">
-            <h2 className="text-2xl font-bold mb-6 text-center">Update Password</h2>
+        <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h2 className="text-2xl font-bold mb-6 text-center">Cambiar Contraseña</h2>
+            
+            <div className="mb-4 text-sm text-gray-600">
+                <p>La contraseña debe cumplir con los siguientes requisitos:</p>
+                <ul className="list-disc list-inside mt-2">
+                    <li>Mínimo 8 caracteres</li>
+                    <li>Al menos una letra mayúscula</li>
+                    <li>Al menos una letra minúscula</li>
+                    <li>Al menos un número</li>
+                    <li>Al menos un carácter especial (!@#$%^&*)</li>
+                </ul>
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Current Password
-                    </label>
-                    <input
-                        type="password"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2A3287]"
-                        required
-                    />
+            <GenericForm
+                fields={fields}
+                onSubmit={handleSubmit}
+                submitButtonText="Actualizar Contraseña"
+            />
+
+            {formError && (
+                <div className="mt-4 text-red-500 text-sm p-2 bg-red-50 rounded-md">
+                    {formError}
                 </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        New Password
-                    </label>
-                    <input
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2A3287]"
-                        required
-                        minLength={8}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters long</p>
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Confirm New Password
-                    </label>
-                    <input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#2A3287] ${
-                            confirmPassword && newPassword !== confirmPassword 
-                                ? 'border-red-500' 
-                                : 'border-gray-300'
-                        }`}
-                        required
-                    />
-                    {confirmPassword && newPassword !== confirmPassword && (
-                        <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
-                    )}
-                </div>
-
-                {error && (
-                    <div className="text-red-500 text-sm p-2 bg-red-50 rounded-md">
-                        {error}
-                    </div>
-                )}
-
-                {success && (
-                    <div className="text-green-600 text-sm p-2 bg-green-50 rounded-md">
-                        {success}
-                    </div>
-                )}
-
-                <div className="flex justify-end gap-4 pt-4">
-                    <Button
-                        variant="primary"
-                        disabled={isLoading || newPassword !== confirmPassword || newPassword.length < 8}
-                    >
-                        {isLoading ? 'Updating...' : 'Update Password'}
-                    </Button>
-                </div>
-            </form>
+            )}
         </div>
-    )
-}
+    );
+};
+
+export default ChangePasswordForm;

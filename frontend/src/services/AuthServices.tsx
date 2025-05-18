@@ -12,12 +12,11 @@ export const registerUser = async (userData: RegisterUserData) => {
   return await response.json();
 };
 
-export const loginUser = async (userData: { email: string, password: string }) => {
-  console.log(API_URL);
+export const loginUser = async (email: string, password: string) => {
   const response = await fetch(`${API_URL}/auth/signin`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(userData),
+    body: JSON.stringify({ email, password }),
   });
   return await response.json();
 };
@@ -80,4 +79,25 @@ export const checkAuthStatus = async () => {
     isAuthenticated: true,
     user: validation.user
   };
+};
+
+export const resetPassword = async (token: string, newPassword: string) => {
+  try {
+    const response = await fetch(`${API_URL}/auth/reset-password`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ token, newPassword }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Error changing password");
+    }
+
+    return { success: true, message: data.message };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 };

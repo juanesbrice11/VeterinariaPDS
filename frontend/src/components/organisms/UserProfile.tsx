@@ -41,56 +41,42 @@ function UserProfile() {
     const [petsError, setPetsError] = useState<string | null>(null);
     const [showPasswordForm, setShowPasswordForm] = useState(false);
     const [showEditForm, setShowEditForm] = useState(false);
-    const [isDataReady, setIsDataReady] = useState(false);
+    const [isClient, setIsClient] = useState(false);
     const router = useRouter();
     const { fetchUserProfile, isLoading, error } = useUserServices();
-    const { user } = useAuth();
-
-    const [token, setToken] = useState<string | null>(null);
+    const { user, isAuthenticated } = useAuth();
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            setToken(localStorage.getItem('token'));
-        }
+        setIsClient(true);
     }, []);
 
     useEffect(() => {
-        let mounted = true;
-
         const loadUserProfile = async () => {
+            if (!isAuthenticated || !isClient) return;
+            
             try {
                 const userProfile = await fetchUserProfile();
-                if (!mounted) return;
-
                 if (userProfile) {
                     setUserData(userProfile);
-                    setIsDataReady(true);
                 }
             } catch (e) {
                 console.error("Failed to load profile:", e);
             }
         };
 
-        if (!isDataReady && !isLoading) {
-            loadUserProfile();
-        }
-
-        return () => {
-            mounted = false;
-        };
-    }, [fetchUserProfile, isLoading, isDataReady]);
+        loadUserProfile();
+    }, [isAuthenticated, fetchUserProfile, isClient]);
 
     useEffect(() => {
-        let mounted = true;
-
         const fetchUserPets = async () => {
-            if (!token) return;
+            if (!isAuthenticated || !isClient) return;
 
             setPetsLoading(true);
             try {
-                const response = await getPets(token);
-                if (!mounted) return;
+                const token = localStorage.getItem('token');
+                if (!token) return;
 
+                const response = await getPets(token);
                 if (Array.isArray(response)) {
                     setPets(response);
                 } else if (response.error) {
@@ -108,19 +94,17 @@ function UserProfile() {
             }
         };
 
-        fetchUserPets();
-
-        return () => {
-            mounted = false;
-        };
-    }, [token]);
+        if (isClient) {
+            fetchUserPets();
+        }
+    }, [isAuthenticated, isClient]);
 
     const handlePetClick = (petId: string | number) => {
         const petIdString = petId.toString();
         router.push(`/pets/${petIdString}/profile`);
     };
 
-    if (!isDataReady || isLoading) {
+    if (isLoading) {
         return (
             <div className="min-h-screen bg-gradient-to-b from-white via-white via-[35.1%] to-[#FFE9D2] to-[87.02%] p-6 text-black">
                 <h1 className="text-3xl font-bold mb-6 text-center">My Profile</h1>

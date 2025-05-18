@@ -15,10 +15,12 @@ export interface FormField {
     type: 'text' | 'email' | 'password' | 'number' | 'date' | 'select';
     placeholder?: string;
     required?: boolean;
-    validation?: (value: string) => string | null;
+    validation?: (value: string, formData?: Record<string, any>) => string | null;
     options?: FormFieldOption[];
     fullWidth?: boolean;
     max?: string;
+    showPasswordToggle?: boolean;
+    onTogglePassword?: () => void;
 }
 
 interface GenericFormProps {
@@ -63,7 +65,7 @@ const GenericForm: React.FC<GenericFormProps> = ({
                 isValid = false;
             }
             if (field.validation && formData[field.name]) {
-                const error = field.validation(formData[field.name]);
+                const error = field.validation(formData[field.name], formData);
                 if (error) {
                     newErrors[field.name] = error;
                     isValid = false;
@@ -108,6 +110,8 @@ const GenericForm: React.FC<GenericFormProps> = ({
                             error={errors[field.name] || undefined}
                             required={field.required}
                             max={field.max}
+                            showPasswordToggle={field.showPasswordToggle}
+                            onTogglePassword={field.onTogglePassword}
                         />
                     );
 

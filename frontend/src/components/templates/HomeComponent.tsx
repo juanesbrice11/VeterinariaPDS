@@ -1,7 +1,5 @@
 'use client'
 import React from 'react'
-import Navbar from '../organisms/Navbar'
-import Footer from '../organisms/Footer'
 import MainHome from '../organisms/MainHome'
 
 export default function HomeComponent() {
@@ -10,7 +8,6 @@ export default function HomeComponent() {
       <main className="flex-grow m-10 p-10">
         <MainHome />
       </main>
-      <Footer />
     </div>
   )
 }

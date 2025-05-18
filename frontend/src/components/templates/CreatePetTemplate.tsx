@@ -153,7 +153,6 @@ const CreatePetTemplate = () => {
                 throw new Error(response.error);
             }
 
-            toast.success('Pet created successfully');
             setFormData({
                 name: '',
                 species: '',
@@ -164,10 +163,18 @@ const CreatePetTemplate = () => {
             });
             setSelectedDate(null);
             setSelectedImage(null);
+            
+            toast.success('Pet created successfully', {
+                duration: 4000,
+                position: 'top-center',
+            });
 
         } catch (error) {
             console.error('Error creating pet:', error);
-            toast.error(error instanceof Error ? error.message : 'Error creating pet');
+            toast.error(error instanceof Error ? error.message : 'Error creating pet', {
+                duration: 4000,
+                position: 'top-center',
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -267,6 +274,7 @@ const CreatePetTemplate = () => {
                             <FileInput
                                 label="Pet photo (optional)"
                                 onChange={handleImageChange}
+                                value={selectedImage}
                                 accept="image/*"
                             />
                         </div>

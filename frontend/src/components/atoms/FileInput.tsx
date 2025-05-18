@@ -1,9 +1,10 @@
 'use client'
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 interface FileInputProps {
     label: string;
     onChange: (file: File | null) => void;
+    value?: File | null;
     accept?: string;
     maxSize?: number; // in bytes, default 5MB
 }
@@ -11,6 +12,7 @@ interface FileInputProps {
 const FileInput: React.FC<FileInputProps> = ({
     label,
     onChange,
+    value,
     accept = 'image/*',
     maxSize = 5 * 1024 * 1024
 }) => {
@@ -18,6 +20,17 @@ const FileInput: React.FC<FileInputProps> = ({
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Sync with prop value
+    useEffect(() => {
+        if (!value) {
+            setFileName('');
+            setPreviewUrl(null);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    }, [value]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;

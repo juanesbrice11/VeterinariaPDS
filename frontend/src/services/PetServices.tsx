@@ -1,21 +1,17 @@
 import { Pet, PetResponse, PetsListResponse } from "@/types/schemas";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export const createAuthenticatedRequest = async (
     url: string,
-    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
     token: string,
-    body?: object,
-    isFormData = false
+    body?: object
 ) => {
     const headers: HeadersInit = {
+        "Content-Type": "application/json",
         "Authorization": `Bearer ${token}`
     };
-
-    if (!isFormData) {
-        headers["Content-Type"] = "application/json";
-    }
 
     const requestOptions: RequestInit = {
         method,
@@ -23,11 +19,7 @@ export const createAuthenticatedRequest = async (
     };
 
     if (body) {
-        if (isFormData && body instanceof FormData) {
-            requestOptions.body = body;
-        } else if (!isFormData) {
-            requestOptions.body = JSON.stringify(body);
-        }
+        requestOptions.body = JSON.stringify(body);
     }
 
     const response = await fetch(url, requestOptions);
@@ -48,66 +40,6 @@ export const createAuthenticatedRequest = async (
 };
 
 export const createPet = async (
-    petData: Pet, 
-    token: string,
-    image?: File
-): Promise<PetResponse> => {
-    if (!token) {
-        return { error: "No hay sesión activa" };
-    }
-
-    if (image) {
-        const formData = new FormData();
-        Object.entries(petData).forEach(([key, value]) => {
-            if (value !== undefined && value !== null) {
-                formData.append(key, value.toString());
-            }
-        });
-        formData.append('image', image);
-
-        return await createAuthenticatedRequest(
-            `${API_URL}/pets`,
-            'POST',
-            token,
-            formData,
-            true
-        );
-    }
-
-    return await createAuthenticatedRequest(
-        `${API_URL}/pets`,
-        'POST',
-        token,
-        petData
-    );
-};
-
-export const getPets = async (token: string): Promise<PetsListResponse> => {
-    if (!token) {
-        return { error: "No hay sesión activa" };
-    }
-
-    return await createAuthenticatedRequest(
-        `${API_URL}/pets`,
-        'GET',
-        token
-    );
-};
-
-export const getPet = async (id: string, token: string): Promise<PetResponse> => {
-    if (!token) {
-        return { error: "No hay sesión activa" };
-    }
-
-    return await createAuthenticatedRequest(
-        `${API_URL}/pets/${id}`,
-        'GET',
-        token
-    );
-};
-
-export const updatePet = async (
-    id: string,
     petData: Pet,
     token: string,
     image?: File
@@ -116,29 +48,83 @@ export const updatePet = async (
         return { error: "No hay sesión activa" };
     }
 
-    if (image) {
-        const formData = new FormData();
-        Object.entries(petData).forEach(([key, value]) => {
-            if (value !== undefined && value !== null) {
-                formData.append(key, value.toString());
-            }
-        });
-        formData.append('image', image);
+    const petDataToSend = { ...petData };
 
-        return await createAuthenticatedRequest(
-            `${API_URL}/pets/${id}`,
-            'PUT',
-            token,
-            formData,
-            true
-        );
+    if (image) {
+        const base64Image = await convertFileToBase64(image);
+        petDataToSend.imageUrl = base64Image;
+    }
+
+    return await createAuthenticatedRequest(
+        `${API_URL}/pets`,
+        'POST',
+        token,
+        petDataToSend
+    );
+};
+
+export const getPets = async (token: string): Promise<PetsListResponse> => {
+    if (!token) {
+        return { error: "No hay sesión activa" };
+    }
+
+    const response = await createAuthenticatedRequest(
+        `${API_URL}/pets`,
+        'GET',
+        token
+    );
+
+    if (response.error) {
+        return { error: response.error };
+    }
+
+    return {
+        data: response
+    };
+};
+
+export const getPet = async (id: string, token: string): Promise<PetResponse> => {
+    if (!token) {
+        return { error: "No hay sesión activa" };
+    }
+
+    const response = await createAuthenticatedRequest(
+        `${API_URL}/pets/${id}`,
+        'GET',
+        token
+    );
+
+    if (response.error) {
+        return { error: response.error };
+    }
+
+    return {
+        pet: response
+    };
+};
+
+export const updatePet = async (
+    id: string,
+    petData: Partial<Pet>,
+    token: string,
+    image?: File
+): Promise<PetResponse> => {
+    if (!token) {
+        return { error: "No hay sesión activa" };
+    }
+
+    const petDataToSend = { ...petData };
+
+    if (image) {
+        const base64Image = await convertFileToBase64(image);
+        petDataToSend.imageUrl = base64Image;
     }
 
     return await createAuthenticatedRequest(
         `${API_URL}/pets/${id}`,
         'PUT',
         token,
-        petData
+        petDataToSend
     );
 };
 
@@ -152,4 +138,13 @@ export const deletePet = async (id: string, token: string): Promise<PetResponse>
         'DELETE',
         token
     );
+};
+
+const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = error => reject(error);
+    });
 }; 
