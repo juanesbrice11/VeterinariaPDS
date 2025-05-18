@@ -1,5 +1,6 @@
 import './globals.css';
 import { Instrument_Sans, Noto_Sans_JP } from 'next/font/google';
+import { AuthProvider } from '@/context/AuthContext';
 
 const instrumentSans = Instrument_Sans({
   weight: ['400', '500', '700'],
@@ -22,7 +23,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`dark ${instrumentSans.variable} ${otomanopee.variable}`}>
       <body>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

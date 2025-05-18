@@ -17,6 +17,8 @@ export interface FormField {
     required?: boolean;
     validation?: (value: string) => string | null;
     options?: FormFieldOption[];
+    fullWidth?: boolean;
+    max?: string;
 }
 
 interface GenericFormProps {
@@ -80,10 +82,10 @@ const GenericForm: React.FC<GenericFormProps> = ({
     }, [formData, onSubmit, validate]);
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
-            {fields.map(field => {
-                if (field.type === 'select') {
-                    return (
+        <form onSubmit={handleSubmit} className="w-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {fields.map(field => {
+                    const fieldComponent = field.type === 'select' ? (
                         <Select
                             key={field.name}
                             label={field.label}
@@ -94,25 +96,37 @@ const GenericForm: React.FC<GenericFormProps> = ({
                             error={errors[field.name] || undefined}
                             required={field.required}
                         />
+                    ) : (
+                        <Input
+                            key={field.name}
+                            label={field.label}
+                            name={field.name}
+                            type={field.type}
+                            placeholder={field.placeholder}
+                            value={formData[field.name]}
+                            onChange={handleChange}
+                            error={errors[field.name] || undefined}
+                            required={field.required}
+                            max={field.max}
+                        />
                     );
-                }
-                return (
-                    <Input
-                        key={field.name}
-                        label={field.label}
-                        name={field.name}
-                        type={field.type as 'text' | 'email' | 'password' | 'number' | 'date'}
-                        placeholder={field.placeholder}
-                        value={formData[field.name]}
-                        onChange={handleChange}
-                        error={errors[field.name] || undefined}
-                        required={field.required}
-                    />
-                );
-            })}
-            <Button type="submit" variant="primary" fullWidth={true}>
-                {submitButtonText}
-            </Button>
+
+                    return field.fullWidth ? (
+                        <div key={field.name} className="md:col-span-2">
+                            {fieldComponent}
+                        </div>
+                    ) : (
+                        <div key={field.name}>
+                            {fieldComponent}
+                        </div>
+                    );
+                })}
+                <div className="md:col-span-2">
+                    <Button type="submit" variant="primary" fullWidth={true}>
+                        {submitButtonText}
+                    </Button>
+                </div>
+            </div>
         </form>
     );
 };

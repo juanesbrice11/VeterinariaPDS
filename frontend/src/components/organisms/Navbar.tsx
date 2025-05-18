@@ -4,20 +4,22 @@ import Logo from '@/components/atoms/Logo';
 import NavLinks from '@/components/molecules/NavLinks';
 import Button from '@/components/atoms/Button';
 import { useRouter } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Menu, X } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Navbar() {
-  const [hasToken, setHasToken] = useState(false);
+  const { isAuthenticated, loading, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    setHasToken(!!token);
-  }, []);
-
   const toggleMenu = () => setMenuOpen(!menuOpen);
+
+  const handleLogout = () => {
+    logout();
+    router.push('/');
+    router.refresh();
+  };
 
   return (
     <header className="bg-orange-50 py-4 px-6 md:px-10 flex items-center justify-between border-b rounded-b-[10px] relative">
@@ -31,21 +33,17 @@ export default function Navbar() {
       </div>
 
       <div className="hidden md:flex items-center space-x-4 flex-shrink-0">
-        {hasToken ? (
+        {loading ? (
+          <div className="h-10"></div>
+        ) : isAuthenticated ? (
           <>
             <Button variant="primary" onClick={() => router.push('/profile')}>
               Profile
             </Button>
-            <Button fullWidth variant="primary" onClick={() => {
-              localStorage.removeItem('token');
-              router.push('/');
-              router.refresh();
-
-            }}>
+            <Button fullWidth variant="primary" onClick={handleLogout}>
               Logout
             </Button>
           </>
-
         ) : (
           <>
             <Button variant="primary" onClick={() => router.push('/register')}>
@@ -67,16 +65,14 @@ export default function Navbar() {
       {menuOpen && (
         <div className="absolute top-full left-0 w-full bg-orange-50 shadow-md p-4 flex flex-col items-center space-y-4 md:hidden z-50 text-center">
           <NavLinks />
-          {hasToken ? (
+          {loading ? (
+            <div className="h-10"></div>
+          ) : isAuthenticated ? (
             <>
               <Button fullWidth variant="primary" onClick={() => router.push('/profile')}>
                 Profile
               </Button>
-              <Button fullWidth variant="primary" onClick={() => {
-                localStorage.removeItem('token');
-                router.refresh();
-                router.replace('/');
-              }}>
+              <Button fullWidth variant="primary" onClick={handleLogout}>
                 Logout
               </Button>
             </>

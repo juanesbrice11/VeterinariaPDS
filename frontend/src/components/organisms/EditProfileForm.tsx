@@ -3,10 +3,8 @@
 import { useState } from 'react'
 import Button from '../atoms/Button'
 import { UserProfile } from '@/types/schemas'
-import { updateUser } from '@/services/UserServices'
 import { useRouter } from 'next/navigation'
-
-
+import { useUserServices } from '@/hooks/useUserServices'
 
 type EditProfileFormProps = {
     initialData: UserProfile
@@ -14,30 +12,31 @@ type EditProfileFormProps = {
 
 export default function EditProfileForm({ initialData }: EditProfileFormProps) {
     const [formData, setFormData] = useState<UserProfile>(initialData);
-    const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
+    const { updateUserProfile, isLoading, error, clearError } = useUserServices();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        setIsLoading(true)
-        setError('')
+        clearError()
         setSuccess('')
 
         try {
-
             const formattedData = {
                 ...formData,
                 birthDate: formData.birthDate.toString().split('T')[0],
             }
-            await updateUser(formattedData);
-            setSuccess('Perfil actualizado correctamente');
+            
+            const success = await updateUserProfile(formattedData);
+            
+            if (success) {
+                setSuccess('Profile updated successfully');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            }
         } catch (err) {
-            setError('Error al actualizar el perfil. Por favor intenta nuevamente.')
             console.error('Error updating profile:', err)
-        } finally {
-            setIsLoading(false)
         }
     }
 
@@ -164,8 +163,9 @@ export default function EditProfileForm({ initialData }: EditProfileFormProps) {
                 <div className="flex justify-end gap-4 pt-4">
                     <Button
                         variant="primary"
+                        disabled={isLoading}
                     >
-                        {isLoading ? 'Cambiando...' : 'Save changes'}
+                        {isLoading ? 'Updating...' : 'Save changes'}
                     </Button>
                 </div>
             </form>

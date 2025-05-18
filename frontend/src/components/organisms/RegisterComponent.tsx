@@ -1,193 +1,146 @@
-'use client'
-import React, { useRef, useState } from 'react';
+    'use client'
+import React, { useState } from 'react';
 import { registerUser } from "@/services/AuthServices";
 import { useRouter } from 'next/navigation';
 import { RegisterUserData } from '@/types/schemas';
-import Button from '@/components/atoms/Button';
+import GenericForm, { FormField } from '@/components/organisms/GenericForm';
 
 export default function RegisterComponent() {
-    const [formData, setFormData] = useState<RegisterUserData>({
-        name: '',
-        email: '',
-        password: '',
-        documentType: 'CC',
-        documentNumber: '',
-        phone: '',
-        birthDate: new Date().toISOString().split('T')[0],
-        gender: '',
-        address: '',
-        bio: '',
-    });
-
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
     const router = useRouter();
-    const formRef = useRef<HTMLFormElement>(null);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-
-            const formattedData = {
-                ...formData,
-                birthDate: formData.birthDate.toString().split('T')[0],
-            }
-            const data = await registerUser(formattedData);
-            if (data.message) {
-                setMessage(data.message);
-                router.push("/login");
-                setError("");
-            } else {
-                setError(data.error || "Error al registrarse");
-            }
-        } catch {
-            setError("Error en el servidor");
-        }
-    };
 
     const today = new Date().toISOString().split("T")[0];
     const minDate = new Date();
     minDate.setFullYear(minDate.getFullYear() - 100);
     const minDateStr = minDate.toISOString().split("T")[0];
 
+    const handleSubmit = async (formData: Record<string, any>) => {
+        try {
+            const completeFormData: RegisterUserData = {
+                ...formData,
+                birthDate: formData.birthDate || new Date().toISOString().split('T')[0],
+                name: formData.name || '',
+                email: formData.email || '',
+                password: formData.password || '',
+                documentType: formData.documentType || 'CC',
+                documentNumber: formData.documentNumber || '',
+                phone: formData.phone || '',
+                gender: formData.gender || '',
+                address: formData.address || '',
+                bio: formData.bio || '',
+            };
+
+            const data = await registerUser(completeFormData);
+            if (data.message) {
+                setMessage(data.message);
+                router.push("/login");
+                setError("");
+            } else {
+                setError(data.error || "Error registering user");
+            }
+        } catch {
+            setError("Server error");
+        }
+    };
+
+    const fields: FormField[] = [
+        {
+            name: 'name',
+            label: 'Name',
+            type: 'text',
+            required: true,
+        },
+        {
+            name: 'email',
+            label: 'Email',
+            type: 'email',
+            required: true,
+        },
+        {
+            name: 'password',
+            label: 'Password',
+            type: 'password',
+            required: true,
+        },
+        {
+            name: 'phone',
+            label: 'Phone',
+            type: 'text',
+            required: true,
+        },
+        {
+            name: 'birthDate',
+            label: 'Birth Date',
+            type: 'date',
+            required: true,
+            max: today,
+            validation: (value) => {
+                const date = new Date(value);
+                if (date > new Date(today)) {
+                    return 'La fecha no puede ser futura';
+                }
+                if (date < new Date(minDateStr)) {
+                    return 'La fecha no puede ser mayor a 100 años';
+                }
+                return null;
+            }
+        },
+        {
+            name: 'gender',
+            label: 'Gender',
+            type: 'select',
+            required: true,
+            options: [
+                { value: '', label: 'Select' },
+                { value: 'M', label: 'Male' },
+                { value: 'F', label: 'Female' },
+                { value: 'O', label: 'Other' }
+            ]
+        },
+        {
+            name: 'documentType',
+            label: 'ID Type',
+            type: 'select',
+            required: true,
+            options: [
+                { value: 'CC', label: 'CC' },
+                { value: 'TI', label: 'TI' },
+                { value: 'CE', label: 'CE' }
+            ]
+        },
+        {
+            name: 'documentNumber',
+            label: 'ID Number',
+            type: 'text',
+            required: true,
+        },
+        {
+            name: 'address',
+            label: 'Address',
+            type: 'text',
+            required: true,
+            fullWidth: true,
+        },
+        {
+            name: 'bio',
+            label: 'Bio',
+            type: 'text',
+            required: true,
+            fullWidth: true,
+        },
+    ];
+
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
             <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-2xl text-black">
                 <h2 className="text-3xl font-bold mb-6 text-center">Register</h2>
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium">Name</label>
-                        <input
-                            type="text"
-                            name="name"
-                            value={formData.name}
-                            onChange={handleChange}
-                            className="mt-1 block w-full border border-gray-300 rounded-lg p-2"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium">Email</label>
-                        <input
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            className="mt-1 block w-full border border-gray-300 rounded-lg p-2"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium">Password</label>
-                        <input
-                            type="password"
-                            name="password"
-                            value={formData.password}
-                            onChange={handleChange}
-                            className="mt-1 block w-full border border-gray-300 rounded-lg p-2"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium">Phone</label>
-                        <input
-                            type="tel"
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            className="mt-1 block w-full border border-gray-300 rounded-lg p-2"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium">Birth Date</label>
-                        <input
-                            type="date"
-                            name="birthDate"
-                            value={formData.birthDate.toString().split('T')[0]}
-                            min={minDateStr}
-                            max={today}
-                            onChange={(e) => setFormData({ ...formData, birthDate: new Date(e.target.value).toISOString().split('T')[0] })}
-                            className="mt-1 block w-full border border-gray-300 rounded-lg p-2"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium">Gender</label>
-                        <select
-                            name="gender"
-                            value={formData.gender}
-                            onChange={handleChange}
-                            className="mt-1 block w-full border border-gray-300 rounded-lg p-2"
-                            required
-                        >
-                            <option value="">Select</option>
-                            <option value="M">Male</option>
-                            <option value="F">Female</option>
-                            <option value="O">Other</option>
-                        </select>
-                    </div>
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium">Address</label>
-                        <input
-                            type="text"
-                            name="address"
-                            value={formData.address}
-                            onChange={handleChange}
-                            className="mt-1 block w-full border border-gray-300 rounded-lg p-2"
-                            required
-                        />
-                    </div>
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium">Bio</label>
-                        <textarea
-                            name="bio"
-                            value={formData.bio}
-                            onChange={handleChange}
-                            className="mt-1 block w-full border border-gray-300 rounded-lg p-2"
-                            rows={3}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium">ID Type</label>
-                        <select
-                            name="documentType"
-                            value={formData.documentType}
-                            onChange={handleChange}
-                            className="mt-1 block w-full border border-gray-300 rounded-lg p-2"
-                            required
-                        >
-                            <option value="CC">CC</option>
-                            <option value="TI">TI</option>
-                            <option value="CE">CE</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium">ID Number</label>
-                        <input
-                            type="text"
-                            name="documentNumber"
-                            value={formData.documentNumber}
-                            onChange={handleChange}
-                            className="mt-1 block w-full border border-gray-300 rounded-lg p-2"
-                            required
-                        />
-                    </div>
-                    <div className="md:col-span-2">
-                        <Button
-                            variant='primary'
-                            onClick={() => formRef.current?.requestSubmit()}
-                        >
-                            Register
-                        </Button>
-                    </div>
-                </form>
+                
+                <GenericForm
+                    fields={fields}
+                    onSubmit={handleSubmit}
+                    submitButtonText="Register"
+                />
 
                 {error && <p className="mt-4 text-red-500">{error}</p>}
                 {message && <p className="mt-4 text-green-500">{message}</p>}

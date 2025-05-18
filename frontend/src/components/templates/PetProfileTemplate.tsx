@@ -4,15 +4,14 @@ import React, { useEffect, useState } from 'react';
 import Navbar from '@/components/organisms/Navbar';
 import Footer from '@/components/organisms/Footer';
 
-// Interfaces para los datos de la mascota y el historial clínico (ejemplo)
 interface PetDetails {
   id: string;
   name: string;
   species: string;
   breed: string;
   birthDate: string;
-  ownerName: string; // O podrías tener un ownerId para enlazar a datos del usuario
-  imageUrl?: string; // Opcional
+  ownerName: string;
+  imageUrl?: string;
 }
 
 interface ClinicalHistoryEntry {
@@ -29,7 +28,6 @@ interface PetProfileTemplateProps {
   petId: string;
 }
 
-// Datos de ejemplo
 const MOCK_PET_DATABASE: PetDetails[] = [
   { id: '1', name: 'Firulais', species: 'Perro', breed: 'Labrador', birthDate: '2020-01-15', ownerName: 'John Doe', imageUrl: 'https://via.placeholder.com/150/FFE9D2/000000?Text=Firulais' },
   { id: '2', name: 'Misu', species: 'Gato', breed: 'Siames', birthDate: '2021-05-20', ownerName: 'Jane Doe', imageUrl: 'https://via.placeholder.com/150/E2F0FB/000000?Text=Misu' },
@@ -45,7 +43,6 @@ const MOCK_CLINICAL_HISTORY: Record<string, ClinicalHistoryEntry[]> = {
   '2': [
     { id: 'h3', visitDate: '2023-06-10', reason: 'Estornudos', diagnosis: 'Resfriado leve', treatment: 'Reposo y observación', vetName: 'Dr. Jones' },
   ],
-  // Añadir más historiales si es necesario
 };
 
 const PetProfileTemplate: React.FC<PetProfileTemplateProps> = ({ petId }) => {
@@ -54,7 +51,6 @@ const PetProfileTemplate: React.FC<PetProfileTemplateProps> = ({ petId }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simular la carga de datos
     setLoading(true);
     const foundPet = MOCK_PET_DATABASE.find(p => p.id === petId);
     const foundHistory = MOCK_CLINICAL_HISTORY[petId] || [];
@@ -98,9 +94,9 @@ const PetProfileTemplate: React.FC<PetProfileTemplateProps> = ({ petId }) => {
           {/* Pet Information Section */}
           <div className="flex flex-col md:flex-row items-center gap-6 mb-8 pb-8 border-b border-gray-200">
             {petData.imageUrl && (
-              <img 
-                src={petData.imageUrl} 
-                alt={petData.name} 
+              <img
+                src={petData.imageUrl}
+                alt={petData.name}
                 className="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-gray-200 shadow-md"
               />
             )}

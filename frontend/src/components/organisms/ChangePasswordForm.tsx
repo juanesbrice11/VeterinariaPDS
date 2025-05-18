@@ -2,42 +2,41 @@
 
 import { useState } from 'react'
 import Button from '../atoms/Button'
-import { updatePassword } from '@/services/UserServices'
+import { useUserServices } from '@/hooks/useUserServices'
 
 export default function ChangePasswordForm() {
     const [currentPassword, setCurrentPassword] = useState('')
     const [newPassword, setNewPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
-    const [error, setError] = useState('')
     const [success, setSuccess] = useState('')
-    const [isLoading, setIsLoading] = useState(false)
+    const { changePassword, isLoading, error, clearError } = useUserServices()
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+        clearError()
+        setSuccess('')
 
         if (newPassword !== confirmPassword) {
-            setError('Las contraseñas no coinciden')
+            clearError()
             return
         }
 
         if (newPassword.length < 8) {
-            setError('La contraseña debe tener al menos 8 caracteres')
+            clearError()
             return
         }
 
-        setIsLoading(true)
-        setError('')
-
         try {
-            await updatePassword(currentPassword, newPassword);
-            setSuccess('Contraseña cambiada exitosamente')
-            setCurrentPassword('')
-            setNewPassword('')
-            setConfirmPassword('')
+            const success = await changePassword(currentPassword, newPassword);
+            
+            if (success) {
+                setSuccess('Password changed successfully')
+                setCurrentPassword('')
+                setNewPassword('')
+                setConfirmPassword('')
+            }
         } catch (err) {
-            setError('Error al cambiar la contraseña. Verifica tu contraseña actual.')
-        } finally {
-            setIsLoading(false)
+            console.error('Error changing password:', err)
         }
     }
 
@@ -48,7 +47,7 @@ export default function ChangePasswordForm() {
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Actual Password
+                        Current Password
                     </label>
                     <input
                         type="password"
@@ -69,7 +68,9 @@ export default function ChangePasswordForm() {
                         onChange={(e) => setNewPassword(e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2A3287]"
                         required
+                        minLength={8}
                     />
+                    <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters long</p>
                 </div>
 
                 <div>
@@ -80,9 +81,16 @@ export default function ChangePasswordForm() {
                         type="password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#2A3287]"
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-[#2A3287] ${
+                            confirmPassword && newPassword !== confirmPassword 
+                                ? 'border-red-500' 
+                                : 'border-gray-300'
+                        }`}
                         required
                     />
+                    {confirmPassword && newPassword !== confirmPassword && (
+                        <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+                    )}
                 </div>
 
                 {error && (
@@ -100,6 +108,7 @@ export default function ChangePasswordForm() {
                 <div className="flex justify-end gap-4 pt-4">
                     <Button
                         variant="primary"
+                        disabled={isLoading || newPassword !== confirmPassword || newPassword.length < 8}
                     >
                         {isLoading ? 'Updating...' : 'Update Password'}
                     </Button>
