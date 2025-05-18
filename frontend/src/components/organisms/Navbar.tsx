@@ -36,11 +36,16 @@ export default function Navbar() {
             <Button variant="primary" onClick={() => router.push('/profile')}>
               Profile
             </Button>
-            <Button variant="primary" onClick={() => router.push('/logout')}>
+            <Button fullWidth variant="primary" onClick={() => {
+              localStorage.removeItem('token');
+              router.push('/');
+              router.refresh();
+
+            }}>
               Logout
             </Button>
           </>
-          
+
         ) : (
           <>
             <Button variant="primary" onClick={() => router.push('/register')}>
@@ -67,7 +72,11 @@ export default function Navbar() {
               <Button fullWidth variant="primary" onClick={() => router.push('/profile')}>
                 Profile
               </Button>
-              <Button fullWidth variant="primary" onClick={() => router.push('/logout')}>
+              <Button fullWidth variant="primary" onClick={() => {
+                localStorage.removeItem('token');
+                router.refresh();
+                router.replace('/');
+              }}>
                 Logout
               </Button>
             </>

@@ -7,9 +7,10 @@ type ButtonProps = {
   variant?: 'primary' | 'secondary';
   onClick?: () => void;
   fullWidth?: boolean;
+  type?: 'button' | 'submit' | 'reset';
 };
 
-export default function Button({ children, variant = 'primary', onClick, fullWidth = false }: ButtonProps) {
+export default function Button({ children, variant = 'primary', onClick, fullWidth = false, type = 'button' }: ButtonProps) {
   const baseStyles = 'px-4 py-2 rounded-md font-semibold shadow-md transition cursor-pointer';
   const variants = {
     primary: 'bg-[#FB7B53] text-white hover:bg-orange-500',
@@ -18,7 +19,7 @@ export default function Button({ children, variant = 'primary', onClick, fullWid
   const widthClass = fullWidth ? 'w-full' : '';
 
   return (
-    <button onClick={onClick} className={`${baseStyles} ${variants[variant]} ${widthClass}`}>
+    <button type={type} onClick={onClick} className={`${baseStyles} ${variants[variant]} ${widthClass}`}>
       {children}
     </button>
   );

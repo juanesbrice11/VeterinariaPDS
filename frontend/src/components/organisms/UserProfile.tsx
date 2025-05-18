@@ -6,10 +6,11 @@ import Button from '@/components/atoms/Button';
 import ProfileField from '@/components/molecules/ProfileField';
 import ChangePasswordForm from '@/components/organisms/ChangePasswordForm';
 import EditProfileForm from './EditProfileForm';
+import { useRouter } from 'next/navigation';
 
 const MyPets = [
-    { id: 1, name: 'Firulais', species: 'Perro' },
-    { id: 2, name: 'Misu', species: 'Gato' }
+    { id: '1', name: 'Firulais', species: 'Perro' },
+    { id: '2', name: 'Misu', species: 'Gato' }
 ]
 
 export default function UserProfile() {
@@ -19,6 +20,7 @@ export default function UserProfile() {
     const [isEditing, setIsEditing] = useState(false);
     const [showPasswordForm, setShowPasswordForm] = useState(false);
     const [showEditForm, setShowEditForm] = useState(false);
+    const router = useRouter();
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -35,6 +37,10 @@ export default function UserProfile() {
 
         fetchUserData();
     }, []);
+
+    const handlePetClick = (petId: string) => {
+        router.push(`/pets/${petId}/profile`);
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-white via-white via-[35.1%] to-[#FFE9D2] to-[87.02%] p-6 text-black">
@@ -59,18 +65,26 @@ export default function UserProfile() {
                     <div className="border-t pt-4">
                         <ProfileField label="Bio" value={userData?.bio} multiline />
                     </div>
-                    <div className="flex gap-4 ">
+                    <div className="flex justify-between items-center mt-4">
+                        <div className="flex gap-4">
+                            <Button
+                                onClick={() => setShowEditForm(true)}
+                                variant='primary'
+                            >
+                                Edit Profile
+                            </Button>
+                            <Button
+                                onClick={() => setShowPasswordForm(true)}
+                                variant='secondary'
+                            >
+                                Change Password
+                            </Button>
+                        </div>
                         <Button
-                            onClick={() => setShowEditForm(true)}
+                            onClick={() => router.push('/schedule-appointment')}
                             variant='primary'
                         >
-                            Edit Profile
-                        </Button>
-                        <Button
-                            onClick={() => setShowPasswordForm(true)}
-                            variant='secondary'
-                        >
-                            Change Password
+                            Schedule New Appointment
                         </Button>
                     </div>
 
@@ -116,7 +130,11 @@ export default function UserProfile() {
             <h2 className="text-2xl font-bold mt-8 mb-4 text-center">My Pets</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
                 {pets.map(pet => (
-                    <div key={pet.id} className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow">
+                    <div 
+                        key={pet.id} 
+                        className="bg-white rounded-xl p-4 shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                        onClick={() => handlePetClick(pet.id)}
+                    >
                         <div className="flex items-center space-x-3">
                             <div className={`p-2 rounded-full ${pet.species === 'Perro' ? 'bg-[#FFE9D2]' : 'bg-[#E2F0FB]'}`}>
                                 {pet.species === 'Perro' ? (
