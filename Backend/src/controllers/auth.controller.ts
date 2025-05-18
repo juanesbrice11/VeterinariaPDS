@@ -81,7 +81,7 @@ export const signIn = async (req: Request, res: Response): Promise<void> => {
         const token = jwt.sign(
             { id: user.id, role: user.role },
             process.env.JWT_SECRET as string,
-            { expiresIn: "30m" }
+            { expiresIn: "1d" }
         );
 
         res.status(200).json({
@@ -197,4 +197,8 @@ export const testEmail = async (req: Request, res: Response): Promise<void> => {
         console.error("Error al enviar el correo:", error);
         res.status(500).json({ message: "Error al enviar el correo" });
     }
+};
+
+export const validateToken = (req: AuthenticatedRequest, res: Response): void => {  
+    res.json({ valid: true, user: req.user });
 };
