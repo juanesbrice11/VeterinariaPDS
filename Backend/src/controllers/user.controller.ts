@@ -34,13 +34,14 @@ export const editProfile = async (req: AuthenticatedRequest, res: Response): Pro
             return;
         }
 
-        const { name, email, phone, birthDate, gender, address, bio } = req.body;
+        const { name, email, phone, birthDate, gender, address, bio, role } = req.body;
 
         if (name) user.name = name;
         if (email) user.email = email;
         if (phone) user.phone = phone;
         if (birthDate) user.birthDate = birthDate;
         if (gender) user.gender = gender;
+        if (role) user.role = role;
         if (address) user.address = address;
         if (bio) user.bio = bio;
 
@@ -120,4 +121,44 @@ export const changePassword = async (req: AuthenticatedRequest, res: Response): 
         res.status(500).json({ message: "Error al cambiar la contraseña" });
     }
 };
+
+const VALID_ROLES = ['Guest', 'Client', 'Veterinario', 'Admin'];
+
+export const updateUserRole = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const documentNumber = req.params.documentNumber;
+      const { name, email, phone, birthDate, gender, address, bio, role } = req.body;
+  
+      // Validar que venga role y sea válido
+      if (!role || !VALID_ROLES.includes(role)) {
+        res.status(400).json({ message: `Role inválido. Debe ser uno de: ${VALID_ROLES.join(', ')}` });
+        return;
+      }
+  
+      const userRepo = AppDataSource.getRepository(User);
+      const user = await userRepo.findOneBy({ documentNumber} );
+  
+      if (!user) {
+        res.status(404).json({ message: 'Usuario no encontrado' });
+        return;
+      }
+      
+        if (name) user.name = name;
+        if (email) user.email = email;
+        if (phone) user.phone = phone;
+        if (birthDate) user.birthDate = birthDate;
+        if (gender) user.gender = gender;
+        if (role) user.role = role;
+        if (address) user.address = address;
+        if (bio) user.bio = bio;
+
+      user.role = role;
+      await userRepo.save(user);
+  
+      res.status(200).json({ message: 'Rol actualizado correctamente', user: { id: user.id, role: user.role } });
+    } catch (error) {
+      console.error('Error en updateUserRole:', error);
+      res.status(500).json({ message: 'Error del servidor' });
+    }
+  };
 

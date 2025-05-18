@@ -33,6 +33,35 @@ export const createPet = async (req: AuthenticatedRequest, res: Response): Promi
     }
 };
 
+export const createPetSecretary = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { name, species, breed, color, birthDate, gender, weight, ownerId } = req.body;
+
+        if (!name || !species) {
+            res.status(400).json({ message: 'Nombre y especie son requeridos' });
+            return;
+        }
+
+        const petRepo = AppDataSource.getRepository(Pet);
+        const newPet = petRepo.create({
+            name,
+            species,
+            breed,
+            color,
+            birthDate,
+            gender,
+            weight,
+            ownerId
+        });
+
+        await petRepo.save(newPet);
+        res.status(201).json({ message: 'Mascota registrada', pet: newPet });
+    } catch (error) {
+        console.error('Error en createPet:', error);
+        res.status(500).json({ message: 'Error al registrar la mascota' });
+    }
+};
+
 // Obtener todas las mascotas del usuario autenticado
 export const getMyPets = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
@@ -51,6 +80,24 @@ export const getPetById = async (req: AuthenticatedRequest, res: Response): Prom
         const { id } = req.params;
         const petRepo = AppDataSource.getRepository(Pet);
         const pet = await petRepo.findOne({ where: { id: parseInt(id), ownerId: req.user?.id } });
+
+        if (!pet) {
+            res.status(404).json({ message: 'Mascota no encontrada' });
+            return;
+        }
+
+        res.status(200).json(pet);
+    } catch (error) {
+        console.error('Error en getPetById:', error);
+        res.status(500).json({ message: 'Error al obtener la mascota' });
+    }
+};
+
+export const getPetByIdSecretary = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const petRepo = AppDataSource.getRepository(Pet);
+        const pet = await petRepo.findOne({ where: { id: parseInt(id)} });
 
         if (!pet) {
             res.status(404).json({ message: 'Mascota no encontrada' });

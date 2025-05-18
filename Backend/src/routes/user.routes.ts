@@ -3,10 +3,12 @@ import {
     getUsers,
     getMyProfile,
     editProfile,
-    changePassword
+    changePassword,
+    updateUserRole
 } from "../controllers/user.controller";
 import  authenticateToken  from "../middlewares/authenticateToken";
 import  {validateProfileUpdate} from "../middlewares/validateEmail";
+import { authorizeRoles } from "../middlewares/authorizeRoles";
 
 const router = Router();
 
@@ -15,5 +17,6 @@ router.get("/", getUsers);
 router.get("/me", authenticateToken, getMyProfile);
 router.put("/me", authenticateToken, validateProfileUpdate, editProfile);
 router.patch("/me/password", authenticateToken, changePassword);
+router.put('/:documentNumber/role',authenticateToken, authorizeRoles('Admin'), updateUserRole);
 
 export default router;
