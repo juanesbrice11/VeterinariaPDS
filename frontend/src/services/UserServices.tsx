@@ -1,40 +1,94 @@
 import { UserProfile, UserResponse } from "@/types/schemas";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
-const token = localStorage.getItem("token");
 
-export const getActualUser = async (): Promise<UserResponse> => {
-    const response = await fetch(`${API_URL}/users/me`, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-        },
-    });
-    return await response.json();
-}
+export const createAuthenticatedRequest = async (
+    url: string,
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    token: string,
+    body?: object
+) => {
+    const headers: HeadersInit = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+    };
 
-export const updateUser = async (userData: UserProfile): Promise<void> => {
-    const response = await fetch(`${API_URL}/users/me`, {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify(userData),
-    });
-}
+    const requestOptions: RequestInit = {
+        method,
+        headers
+    };
 
-export const updatePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
-    const response = await fetch(`${API_URL}/users/me/password`, {
-        method: "PATCH",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-            currentPassword,
-            newPassword,
-        }),
-    });
-}
+    if (body) {
+        requestOptions.body = JSON.stringify(body);
+    }
+
+    const response = await fetch(url, requestOptions);
+
+    if (response.status === 401) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return { error: "Authentication error: Your session has expired" };
+    }
+
+    try {
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error parsing JSON response:", error);
+        return { error: "Error processing response" };
+    }
+};
+
+export const getActualUser = async (token: string): Promise<UserResponse | { error: string }> => {
+    if (!token) {
+        return { error: "No active session" };
+    }
+
+    return await createAuthenticatedRequest(
+        `${API_URL}/users/me`,
+        'GET',
+        token
+    );
+};
+
+export const updateUser = async (userData: UserProfile, token: string): Promise<{ success?: boolean, error?: string }> => {
+    if (!token) {
+        return { error: "No active session" };
+    }
+
+    const response = await createAuthenticatedRequest(
+        `${API_URL}/users/me`,
+        'PUT',
+        token,
+        userData
+    );
+
+    if (response.error) {
+        return { error: response.error || "Error updating user" };
+    }
+
+    return { success: true };
+};
+
+export const updatePassword = async (
+    currentPassword: string,
+    newPassword: string,
+    token: string
+): Promise<{ success?: boolean, error?: string }> => {
+    if (!token) {
+        return { error: "No active session" };
+    }
+
+    const response = await createAuthenticatedRequest(
+        `${API_URL}/users/me/password`,
+        'PATCH',
+        token,
+        { currentPassword, newPassword }
+    );
+
+    if (response.error) {
+        return { error: response.error || "Error updating password" };
+    }
+
+    return { success: true };
+};

@@ -9,9 +9,10 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
     label?: string;
     error?: string;
     options: SelectOption[];
+    className?: string;
 }
 
-const Select: React.FC<SelectProps> = ({ label, name, error, options, ...rest }) => {
+const Select: React.FC<SelectProps> = ({ label, name, error, options, className = '', ...rest }) => {
     return (
         <div className="mb-4">
             {label && (
@@ -22,7 +23,7 @@ const Select: React.FC<SelectProps> = ({ label, name, error, options, ...rest })
             <select
                 id={name}
                 name={name}
-                className={`mt-1 block w-full px-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm appearance-none bg-white`}
+                className={`mt-1 block w-full px-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm appearance-none bg-white ${className}`}
                 {...rest}
             >
                 <option value="" disabled>Select an option</option>

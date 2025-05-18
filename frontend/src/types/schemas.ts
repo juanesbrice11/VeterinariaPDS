@@ -11,6 +11,7 @@ export type UserResponse = {
     bio: string;
     createdAt: string;
     updatedAt: string;
+    error?: string;
 };
 
 export type RegisterUserData = {
@@ -34,4 +35,27 @@ export type UserProfile = {
     gender: string;
     address: string;
     bio: string;
+}
+
+export interface Pet {
+    id?: string;
+    name: string;
+    species: string;
+    breed?: string;
+    color?: string;
+    birthDate?: string;
+    gender?: string;
+    weight?: number;
+    imageUrl?: string;
+}
+
+export interface PetResponse {
+    data?: Pet;
+    error?: string;
+    success?: boolean;
+}
+
+export interface PetsListResponse {
+    data?: Pet[];
+    error?: string;
 }
