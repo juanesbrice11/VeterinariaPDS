@@ -14,6 +14,15 @@ export type UserResponse = {
     error?: string;
 };
 
+export type GetUsers = {
+    id: number;
+    cc: string;
+    name: string;
+    email: string;
+    status: string;
+    role: string
+}
+
 export type RegisterUserData = {
     name: string;
     email: string;

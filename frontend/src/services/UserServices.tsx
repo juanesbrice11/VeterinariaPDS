@@ -31,6 +31,11 @@ export const createAuthenticatedRequest = async (
     }
 
     const data = await response.json();
+
+    if (Array.isArray(data)) {
+        return { data, status: response.status };
+      }
+
     return { ...data, status: response.status };
 };
 
@@ -84,6 +89,63 @@ export const updatePassword = async (
         { currentPassword, newPassword }
     );
 
+    return {
+        success: response.status === 200,
+        message: response.message
+    };
+};
+
+// Obtener lista de usuarios (con paginación opcional)
+export const getUsers = async (
+    token: string,
+    page: number = 1,
+    limit: number = 8
+  ): Promise<{ users: any[], total: number, status: number, message?: string }> => {
+    if (!token) {
+      return { users: [], total: 0, status: 401, message: "No active session" };
+    }
+  
+    const resp = await createAuthenticatedRequest(
+      `${API_URL}/users?page=${page}&limit=${limit}`,
+      'GET',
+      token
+    );
+    
+
+    const rawUsers = Array.isArray((resp as any).data)
+      ? (resp as any).data
+      : (resp as any).users || [];
+  
+    const users = rawUsers.map((u:any) => ({
+      ...u,
+      cc: u.documentNumber
+    }));
+  
+    const total = typeof (resp as any).total === 'number'
+      ? (resp as any).total
+      : users.length;
+  
+    return {
+      users,
+      total,
+      status: resp.status,
+      message: (resp as any).message
+    };
+  };
+
+// Eliminar un usuario por ID
+export const deleteUser = async (
+    userId: number,
+    token: string
+): Promise<{ success: boolean, message: string }> => {
+    if (!token) {
+        return { success: false, message: "No active session" };
+    }
+    const response = await createAuthenticatedRequest(
+        `${API_URL}/users/${userId}`,
+        'DELETE',
+        token
+    );
     return {
         success: response.status === 200,
         message: response.message
