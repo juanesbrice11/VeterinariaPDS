@@ -55,9 +55,23 @@ export interface Pet {
     name: string;
     species: string;
     breed: string;
+    color?: string;
+    birthDate?: Date;
+    gender?: string;
+    weight?: number;
+    owner?: {
+        id: number;
+        name: string;
+        email?: string;
+        phone?: string;
+    };
+    imageUrl?: string;
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
 export interface PetResponse {
+    success: boolean;
     message?: string;
     pet?: Pet;
     error?: string;

@@ -5,7 +5,9 @@ import {
     BaseEntity,
     CreateDateColumn,
     UpdateDateColumn,
+    OneToMany
 } from "typeorm";
+import { Pet } from "./pet";
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -34,25 +36,25 @@ export class User extends BaseEntity {
     role: string;
 
     @Column({ nullable: true })
-    phone: string ;
+    phone: string;
 
     @Column({ type: "date", nullable: true })
-    birthDate: Date ;
+    birthDate: Date;
 
     @Column({ nullable: true })
-    gender: string ;
+    gender: string;
 
     @Column({ nullable: true })
-    address: string ;
+    address: string;
 
     @Column({ type: "text", nullable: true })
-    bio: string ;
+    bio: string;
 
     @Column({ default: false })
     isVerified: boolean;
 
     @Column({ nullable: true })
-    verificationToken: string ;
+    verificationToken: string;
 
     @CreateDateColumn()
     createdAt: Date;
@@ -61,12 +63,14 @@ export class User extends BaseEntity {
     updatedAt: Date;
 
     @Column({ nullable: true })
-    resetPasswordToken: string ;
+    resetPasswordToken: string;
 
     @Column({ type: "timestamp", nullable: true })
-    resetPasswordTokenExpires: Date ;
+    resetPasswordTokenExpires: Date;
 
     @Column({ type: "timestamp", nullable: true })
     lastLogin: Date;
 
+    @OneToMany(() => Pet, pet => pet.owner)
+    pets: Pet[];
 }
