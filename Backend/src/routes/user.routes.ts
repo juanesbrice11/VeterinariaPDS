@@ -4,7 +4,8 @@ import {
     getMyProfile,
     editProfile,
     changePassword,
-    updateUserRole
+    updateUserRole,
+    deleteUser
 } from "../controllers/user.controller";
 import  authenticateToken  from "../middlewares/authenticateToken";
 import  {validateProfileUpdate} from "../middlewares/validateEmail";
@@ -18,5 +19,6 @@ router.get("/me", authenticateToken, getMyProfile);
 router.put("/me", authenticateToken, validateProfileUpdate, editProfile);
 router.patch("/me/password", authenticateToken, changePassword);
 router.put('/:documentNumber/role',authenticateToken, authorizeRoles('Admin'), updateUserRole);
+router.delete('/:id', authenticateToken, authorizeRoles('Admin'), deleteUser);
 
 export default router;

@@ -103,6 +103,31 @@ paths:
         '200':
           description: Lista de usuarios
 
+    delete:
+      summary: Eliminar un usuario
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID del usuario a eliminar
+      responses:
+        '200':
+          description: Usuario eliminado exitosamente
+        '400':
+          description: ID inválido o intento de auto-eliminación
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          description: Error del servidor
+
   /users/me:
     get:
       summary: Obtener mi perfil
