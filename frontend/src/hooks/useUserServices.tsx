@@ -32,7 +32,6 @@ export const useUserServices = () => {
             setIsLoading(true);
 
             const userData = await getActualUser(token);
-            console.log("userData", userData);
 
             setIsLoading(false);
 

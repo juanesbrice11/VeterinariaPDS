@@ -85,7 +85,7 @@ const GenericForm: React.FC<GenericFormProps> = ({
 
     return (
         <form onSubmit={handleSubmit} className="w-full">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-black">
                 {fields.map(field => {
                     const fieldComponent = field.type === 'select' ? (
                         <Select
