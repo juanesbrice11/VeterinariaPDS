@@ -5,7 +5,7 @@ import { FaEdit, FaCheck, FaTimes, FaEye } from 'react-icons/fa';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { DetailedAppointment } from '@/types/schemas';
-import { getSpecifiedAppointments, getAllAppointments, cancelAppointment, deleteAppointment } from '@/services/AppointmentServices';
+import { getSpecifiedAppointments, getAllAppointments, cancelAppointment, deleteAppointment, updateAppointment } from '@/services/AppointmentServices';
 import AppointmentDetailsModal from '@/components/molecules/AppointmentDetailsModal';
 import EditAppointmentModal from '@/components/molecules/EditAppointmentModal';
 import { toast } from 'react-hot-toast';
@@ -20,26 +20,43 @@ export default function AppointmentsPage() {
   const { user } = useAuth();
   const router = useRouter();
 
+  console.log('Component rendered, user:', user);
+
   useEffect(() => {
+    console.log('useEffect triggered, user:', user);
+    
     if (!user) {
+      console.log('No user found, redirecting to login');
       router.push('/login');
       return;
     }
+    console.log('User found, calling fetchAppointments');
     fetchAppointments();
   }, [user, router]);
 
   const fetchAppointments = async () => {
+    console.log('fetchAppointments started');
     try {
+      console.log('User data:', {
+        token: user?.token,
+        role: user?.role,
+        id: user?.id
+      });
+      
       const response = user?.role === 'Admin' 
         ? await getAllAppointments(user?.token || '')
         : await getSpecifiedAppointments(user?.token || '');
       
+      console.log('API Response:', response);
+      
       if (response.success && response.data) {
         setAppointments(response.data);
       } else {
+        console.log('Error in response:', response);
         toast.error(response.message || 'Error fetching appointments');
       }
     } catch (error) {
+      console.error('Error in fetchAppointments:', error);
       toast.error('Error fetching appointments');
     } finally {
       setLoading(false);
@@ -75,13 +92,24 @@ export default function AppointmentsPage() {
   };
 
   const handleUpdateAppointment = async (updatedAppointment: Partial<DetailedAppointment>) => {
-    if (!selectedAppointment) return;
+    if (!selectedAppointment || !user?.token) return;
 
     try {
-      // TODO: Implement update appointment functionality
-      toast.success('Appointment updated successfully');
-      fetchAppointments();
+      const response = await updateAppointment(
+        user.token,
+        selectedAppointment.id,
+        updatedAppointment
+      );
+
+      if (response.success) {
+        toast.success('Appointment updated successfully');
+        fetchAppointments();
+        setShowEditModal(false);
+      } else {
+        toast.error(response.message || 'Error updating appointment');
+      }
     } catch (error) {
+      console.error('Error updating appointment:', error);
       toast.error('Error updating appointment');
     }
   };
@@ -112,7 +140,7 @@ export default function AppointmentsPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">{user?.role === 'Admin' ? 'All Appointments' : 'My Appointments'}</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{user?.role === 'Admin' ? 'All Appointments' : 'My Appointments'}</h1>
         {user?.role !== 'Admin' && (
           <button 
             onClick={() => router.push('/appointments/new')}
@@ -130,29 +158,29 @@ export default function AppointmentsPage() {
       ) : (
         <div className="bg-white rounded-lg shadow overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-100">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pet</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Date & Time</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Pet</th>
                 {user?.role === 'Admin' && (
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Owner</th>
                 )}
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Veterinarian</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Service</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Veterinarian</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {appointments.map((appointment) => (
-                <tr key={appointment.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">{formatDate(appointment.appointmentDate)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{appointment.pet.name}</td>
+                <tr key={appointment.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(appointment.appointmentDate)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{appointment.pet.name}</td>
                   {user?.role === 'Admin' && (
-                    <td className="px-6 py-4 whitespace-nowrap">{appointment.user.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{appointment.user.name}</td>
                   )}
-                  <td className="px-6 py-4 whitespace-nowrap">{appointment.service.title}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{appointment.service.title}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {appointment.veterinarian ? appointment.veterinarian.name : 'Not assigned'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

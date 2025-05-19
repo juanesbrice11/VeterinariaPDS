@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const validation = await validateToken(token);
 
             if (validation.valid && validation.user) {
-                setUser(validation.user);
+                setUser({ ...validation.user, token });
                 setIsAuthenticated(true);
                 return true;
             } else {
