@@ -10,7 +10,7 @@ import { useUserServices } from '@/hooks/useUserServices';
 import { withAuth } from '@/components/hoc/withAuth';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
-import { getPets } from '@/services/PetServices';
+import { getMyPets } from '@/services/PetServices';
 
 const getSpeciesEmoji = (species: string): string => {
     const speciesLower = species.toLowerCase();
@@ -76,7 +76,7 @@ function AdminProfile() {
                 const token = localStorage.getItem('token');
                 if (!token) return;
 
-                const response = await getPets(token);
+                const response = await getMyPets(token);
                 if (response.success && response.pets) {
                     setPets(response.pets);
                 } else if (response.message) {
