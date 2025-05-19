@@ -77,12 +77,10 @@ function AdminProfile() {
                 if (!token) return;
 
                 const response = await getPets(token);
-                if (Array.isArray(response)) {
-                    setPets(response);
-                } else if (response.error) {
-                    setPetsError(response.error);
-                } else if (response.data) {
-                    setPets(response.data);
+                if (response.success && response.pets) {
+                    setPets(response.pets);
+                } else if (response.message) {
+                    setPetsError(response.message);
                 } else {
                     setPetsError('Formato de respuesta inesperado');
                 }
