@@ -1,43 +1,7 @@
 import { Pet, PetResponse, PetsListResponse } from "@/types/schemas";
+import { createAuthenticatedRequest } from "./ApiService";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-export const createAuthenticatedRequest = async (
-    url: string,
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
-    token: string,
-    body?: object
-) => {
-    const headers: HeadersInit = {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-    };
-
-    const requestOptions: RequestInit = {
-        method,
-        headers
-    };
-
-    if (body) {
-        requestOptions.body = JSON.stringify(body);
-    }
-
-    const response = await fetch(url, requestOptions);
-
-    if (response.status === 401) {
-        localStorage.removeItem('token');
-        window.location.href = '/login';
-        return { error: "Error de autenticación: Tu sesión ha expirado" };
-    }
-
-    try {
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error("Error al procesar la respuesta JSON:", error);
-        return { error: "Error al procesar la respuesta" };
-    }
-};
 
 export const createPet = async (
     petData: Pet,
@@ -45,7 +9,7 @@ export const createPet = async (
     image?: File
 ): Promise<PetResponse> => {
     if (!token) {
-        return { error: "No hay sesión activa" };
+        return { error: "No active session" };
     }
 
     const petDataToSend = { ...petData };
@@ -63,9 +27,9 @@ export const createPet = async (
     );
 };
 
-export const getPets = async (token: string): Promise<PetsListResponse> => {
+export const getPets = async (token: string): Promise<{ success: boolean, message?: string, pets?: Pet[] }> => {
     if (!token) {
-        return { error: "No hay sesión activa" };
+        return { success: false, message: "No active session" };
     }
 
     const response = await createAuthenticatedRequest(
@@ -74,18 +38,21 @@ export const getPets = async (token: string): Promise<PetsListResponse> => {
         token
     );
 
-    if (response.error) {
-        return { error: response.error };
-    }
+    const petsArray = response.status === 200
+        ? Object.keys(response)
+            .filter(key => key !== 'status')
+            .map(key => response[key])
+        : [];
 
     return {
-        data: response
+        success: response.status === 200,
+        pets: petsArray
     };
 };
 
 export const getPet = async (id: string, token: string): Promise<PetResponse> => {
     if (!token) {
-        return { error: "No hay sesión activa" };
+        return { error: "No active session" };
     }
 
     const response = await createAuthenticatedRequest(
@@ -110,7 +77,7 @@ export const updatePet = async (
     image?: File
 ): Promise<PetResponse> => {
     if (!token) {
-        return { error: "No hay sesión activa" };
+        return { error: "No active session" };
     }
 
     const petDataToSend = { ...petData };
@@ -130,7 +97,7 @@ export const updatePet = async (
 
 export const deletePet = async (id: string, token: string): Promise<PetResponse> => {
     if (!token) {
-        return { error: "No hay sesión activa" };
+        return { error: "No active session" };
     }
 
     return await createAuthenticatedRequest(

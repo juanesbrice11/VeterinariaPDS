@@ -75,16 +75,15 @@ function UserProfile() {
             try {
                 const token = localStorage.getItem('token');
                 if (!token) return;
-
                 const response = await getPets(token);
-                if (Array.isArray(response)) {
-                    setPets(response);
-                } else if (response.error) {
-                    setPetsError(response.error);
-                } else if (response.data) {
-                    setPets(response.data);
+                if (response.success) {
+                    if (response.pets) {
+                        setPets(response.pets);
+                    } else {
+                        setPetsError('No pets found');
+                    }
                 } else {
-                    setPetsError('Formato de respuesta inesperado');
+                    setPetsError('Unexpected response format');
                 }
             } catch (err) {
                 console.error("Failed to load pets:", err);
