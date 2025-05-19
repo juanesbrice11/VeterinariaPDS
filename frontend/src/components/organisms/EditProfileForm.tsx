@@ -1,51 +1,49 @@
 'use client'
+import React from 'react';
+import GenericForm, { FormField } from './GenericForm';
+import { UserProfile } from '@/types/schemas';
+import { updateUser } from '@/services/UserServices';
+import { toast } from 'react-hot-toast';
 
-import { useState } from 'react'
-import { UserProfile } from '@/types/schemas'
-import { useRouter } from 'next/navigation'
-import { useUserServices } from '@/hooks/useUserServices'
-import GenericForm, { FormField } from './GenericForm'
-import { toast } from 'react-hot-toast'
-
-type EditProfileFormProps = {
-    initialData: UserProfile
+interface EditProfileFormProps {
+    initialData: UserProfile;
 }
 
-export default function EditProfileForm({ initialData }: EditProfileFormProps) {
-    const router = useRouter();
-    const { updateUserProfile, isLoading, error, clearError } = useUserServices();
-
+const EditProfileForm: React.FC<EditProfileFormProps> = ({ initialData }) => {
     const fields: FormField[] = [
         {
             name: 'name',
             label: 'Name',
             type: 'text',
             required: true,
-            placeholder: 'Enter your name'
+            placeholder: 'Enter your name',
+            fullWidth: true
         },
         {
             name: 'email',
             label: 'Email',
             type: 'email',
             required: true,
-            placeholder: 'Enter your email'
+            placeholder: 'Enter your email',
         },
         {
             name: 'phone',
             label: 'Phone',
             type: 'text',
-            placeholder: 'Enter your phone number'
+            required: true,
+            placeholder: 'Enter your phone number',
         },
         {
             name: 'birthDate',
             label: 'Birth Date',
             type: 'date',
-            placeholder: 'Select your birth date'
+            required: true,
         },
         {
             name: 'gender',
             label: 'Gender',
             type: 'select',
+            required: true,
             options: [
                 { value: 'M', label: 'Male' },
                 { value: 'F', label: 'Female' },
@@ -56,6 +54,7 @@ export default function EditProfileForm({ initialData }: EditProfileFormProps) {
             name: 'address',
             label: 'Address',
             type: 'text',
+            required: true,
             placeholder: 'Enter your address',
             fullWidth: true
         },
@@ -69,7 +68,11 @@ export default function EditProfileForm({ initialData }: EditProfileFormProps) {
     ];
 
     const handleSubmit = async (formData: Record<string, any>) => {
-        clearError();
+        const token = localStorage.getItem('token');
+        if (!token) {
+            toast.error('Authentication token not found');
+            return;
+        }
 
         try {
             const formattedData: UserProfile = {
@@ -81,37 +84,32 @@ export default function EditProfileForm({ initialData }: EditProfileFormProps) {
                 bio: formData.bio || initialData.bio,
                 birthDate: formData.birthDate ? formData.birthDate.toString().split('T')[0] : initialData.birthDate
             };
+
+            const response = await updateUser(formattedData, token);
             
-            const success = await updateUserProfile(formattedData);
-            
-            if (success) {
-                toast.success('Profile updated successfully');
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1500);
+            if (response.success) {
+                toast.success(response.message);
+                setTimeout(() => window.location.reload(), 3000);
+            } else {
+                toast.error(response.message);
             }
-        } catch (err) {
-            console.error('Error updating profile:', err);
-            toast.error('Failed to update profile');
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            toast.error('Server error');
         }
     };
 
     return (
-        <div className="bg-white rounded-lg shadow-md p-6 max-w-2xl mx-auto">
+        <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
             <h2 className="text-2xl font-bold mb-6 text-center">Edit Profile</h2>
-
             <GenericForm
                 fields={fields}
                 onSubmit={handleSubmit}
-                submitButtonText={isLoading ? "Updating..." : "Save changes"}
+                submitButtonText="Save Changes"
                 initialValues={initialData}
             />
-
-            {error && (
-                <div className="mt-4 text-red-500 text-sm p-2 bg-red-50 rounded-md">
-                    {error}
-                </div>
-            )}
         </div>
     );
-}
+};
+
+export default EditProfileForm;
