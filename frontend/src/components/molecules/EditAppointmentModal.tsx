@@ -115,10 +115,10 @@ const EditAppointmentModal: React.FC<EditAppointmentModalProps> = ({ appointment
                                         onChange={handleChange}
                                         className="block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 bg-white text-gray-900"
                                     >
-                                        <option value="pending">Pending</option>
-                                        <option value="confirmed">Confirmed</option>
-                                        <option value="completed">Completed</option>
-                                        <option value="cancelled">Cancelled</option>
+                                        <option value="Pending">Pending</option>
+                                        <option value="Confirmed">Confirmed</option>
+                                        <option value="Completed">Completed</option>
+                                        <option value="Cancelled">Cancelled</option>
                                     </select>
                                 </div>
                             </div>
