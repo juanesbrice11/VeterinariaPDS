@@ -5,12 +5,11 @@ import { Pet } from '../models/pet';
 import { Service } from '../models/Service';
 import { AuthenticatedRequest } from '../middlewares/authenticateToken';
 import { User } from '../models/User';
+import { Between, Not } from 'typeorm';
 
-// Crear cita (solo clientes)
 export const createAppointment = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const { petId, serviceId, appointmentDate } = req.body;
-
 
         if (!petId || !serviceId || !appointmentDate) {
             res.status(400).json({ message: 'Pet, servicio y fecha son requeridos' });
@@ -34,11 +33,48 @@ export const createAppointment = async (req: AuthenticatedRequest, res: Response
             return;
         }
 
+        const appointmentDateTime = new Date(appointmentDate);
+        if (isNaN(appointmentDateTime.getTime())) {
+            res.status(400).json({ message: 'Fecha inválida' });
+            return;
+        }
+
+        if (appointmentDateTime < new Date()) {
+            res.status(400).json({ message: 'No se pueden agendar citas en el pasado' });
+            return;
+        }
+
+        const hour = appointmentDateTime.getHours();
+        if (hour < 8 || hour >= 17) {
+            res.status(400).json({ 
+                message: 'El horario debe estar entre las 8:00 AM y las 5:00 PM',
+                receivedHour: hour
+            });
+            return;
+        }
+
+        if (appointmentDateTime.getMinutes() !== 0) {
+            res.status(400).json({ message: 'Las citas solo se pueden agendar en punto (ej: 8:00, 9:00, etc.)' });
+            return;
+        }
+
+        const existingAppointment = await appointmentRepo.findOne({
+            where: {
+                appointmentDate: appointmentDateTime,
+                status: Not('Cancelled')
+            }
+        });
+
+        if (existingAppointment) {
+            res.status(400).json({ message: 'Ya existe una cita agendada para este horario' });
+            return;
+        }
+
         const appointment = appointmentRepo.create({
             petId,
             serviceId,
             userId: req.user.id,
-            appointmentDate: new Date(appointmentDate),
+            appointmentDate: appointmentDateTime,
             status: 'Pending',
         });
 
@@ -50,7 +86,6 @@ export const createAppointment = async (req: AuthenticatedRequest, res: Response
     }
 };
 
-// Obtener citas del usuario autenticado (cliente o veterinario)
 export const getMyAppointments = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         if (!req.user) {
@@ -73,7 +108,6 @@ export const getMyAppointments = async (req: AuthenticatedRequest, res: Response
     }
 };
 
-        // Cancelar cita (cliente)
 export const cancelAppointment = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
@@ -101,7 +135,6 @@ export const cancelAppointment = async (req: AuthenticatedRequest, res: Response
     }
 };
 
-// Confirmar o completar cita (veterinario)
 export const updateAppointmentStatus = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const { id } = req.params;
@@ -178,6 +211,54 @@ export const getMyDetailedAppointments = async (req: AuthenticatedRequest, res: 
         console.error("Error in getMyDetailedAppointments:", error);
         res.status(500).json({
             message: "Error retrieving appointments"
+        });
+    }
+};
+
+export const getAvailableTimeSlots = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { date } = req.query;
+
+        if (!date) {
+            res.status(400).json({
+                message: "La fecha es requerida (formato: YYYY-MM-DD)"
+            });
+            return;
+        }
+
+        const appointmentRepository = AppDataSource.getRepository(Appointment);
+        const dateStart = new Date(`${date}T00:00:00.000Z`);
+        const dateEnd = new Date(`${date}T23:59:59.999Z`);
+
+        const bookedAppointments = await appointmentRepository.find({
+            where: {
+                appointmentDate: Between(dateStart, dateEnd),
+                status: Not('Cancelled')
+            }
+        });
+
+        const bookedHours = new Set(
+            bookedAppointments.map(app => {
+                const appDate = new Date(app.appointmentDate);
+                return appDate.getHours();
+            })
+        );
+
+        const availableTimeSlots = Array.from({ length: 9 }, (_, i) => i + 8)
+            .filter(hour => !bookedHours.has(hour))
+            .map(hour => `${hour.toString().padStart(2, '0')}:00`);
+
+        res.status(200).json({
+            message: "Available time slots retrieved successfully",
+            data: {
+                date: date,
+                availableTimeSlots: availableTimeSlots
+            }
+        });
+    } catch (error) {
+        console.error("Error in getAvailableTimeSlots:", error);
+        res.status(500).json({
+            message: "Error retrieving available time slots"
         });
     }
 };

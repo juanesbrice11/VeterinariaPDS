@@ -105,15 +105,15 @@ export interface DetailedAppointmentResponse {
 }
 
 export interface Appointment {
-    id: number;
+    id?: number;
     userId: number;
     petId: number;
     serviceId: number;
     veterinarianId?: number;
     appointmentDate: string;
     status: string;
-    createdAt: string;
-    updatedAt: string;
+    createdAt?: string;
+    updatedAt?: string;
     petName?: string;
     petSpecies?: string;
     serviceName?: string;
@@ -123,4 +123,15 @@ export interface AppointmentResponse {
     success: boolean;
     message?: string;
     appointments?: Appointment[];
+}
+
+export interface AvailableTimeSlotsData {
+    date: string;
+    availableTimeSlots: string[];
+}
+
+export interface AvailableTimeSlotsResponse {
+    success: boolean;
+    message?: string;
+    data?: AvailableTimeSlotsData;
 }
