@@ -21,7 +21,7 @@ export const createAppointment = async (token: string, appointment: Appointment)
     );
 
     return {
-        success: response.status === 200,
+        success: response.status === 201,
         message: response.message,
         data: response.data
     };
@@ -66,3 +66,25 @@ export const getAvailableTimeSlots = async (date: string, token: string): Promis
         data: response.data
     };
 };
+
+export const cancelAppointment = async (token: string, appointmentId: number): Promise<{
+    success: boolean,
+    message: string,
+    data?: Appointment
+}> => {
+    if (!token) {
+        return { success: false, message: "No active session" };
+    }
+
+    const response = await createAuthenticatedRequest(
+        `${API_URL}/appointments/${appointmentId}/cancel`,
+        'PATCH',
+        token
+    );
+
+    return {
+        success: response.status === 200,
+        message: response.message,
+        data: response.data
+    };
+}

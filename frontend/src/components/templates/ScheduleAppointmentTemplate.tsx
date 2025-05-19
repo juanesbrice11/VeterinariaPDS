@@ -13,6 +13,7 @@ import { Pet, Service, Appointment } from '@/types/schemas';
 import { getPets } from '@/services/PetServices';
 import { createAppointment, getAvailableTimeSlots } from '@/services/AppointmentServices';
 import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 type ValuePiece = Date | null;
 type CalendarValue = ValuePiece | [ValuePiece, ValuePiece];
@@ -29,7 +30,7 @@ const ScheduleAppointmentTemplate: React.FC<ScheduleAppointmentTemplateProps> = 
     const [pets, setPets] = useState<Pet[]>([]);
     const token = localStorage.getItem('token');
     const { user } = useAuth();
-
+    const router = useRouter();
     useEffect(() => {
         if (!token) {
             return;
@@ -204,6 +205,7 @@ const ScheduleAppointmentTemplate: React.FC<ScheduleAppointmentTemplateProps> = 
                 });
 
                 toast.success(`Appointment scheduled successfully!\nPet: ${petNameForAlert}\nService: ${serviceNameForAlert}\nDate: ${formattedDate}\nTime: ${selectedTimeSlot}`);
+                router.push('/appointments');
             } else {
                 toast.error(response.message || 'Error scheduling appointment');
             }
