@@ -12,21 +12,30 @@ export const getServices = async (token: string): Promise<{
         return { success: false, message: "No active session" };
     }
 
-    const response = await createAuthenticatedRequest(
-        `${API_URL}/services`,
-        'GET',
-        token
-    );
+    try {
+        const response = await createAuthenticatedRequest(
+            `${API_URL}/services`,
+            'GET',
+            token
+        );
 
-    const servicesArray = response.status === 200
-        ? Object.keys(response)
-            .filter(key => key !== 'status')
-            .map(key => response[key])
-        : [];
-
-    return {
-        success: response.status === 200,
-        services: servicesArray
-    };
+        if (response.status === 200) {
+            return {
+                success: true,
+                services: response.data
+            };
+        } else {
+            return {
+                success: false,
+                message: response.message || 'Error fetching services'
+            };
+        }
+    } catch (error) {
+        console.error('Error fetching services:', error);
+        return {
+            success: false,
+            message: 'Error fetching services'
+        };
+    }
 };
 

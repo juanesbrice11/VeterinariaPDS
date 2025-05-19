@@ -1,35 +1,90 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaCheck, FaTimes } from 'react-icons/fa';
+import { FaEdit, FaCheck, FaTimes, FaEye } from 'react-icons/fa';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-
-interface Appointment {
-  id: number;
-  date: string;
-  time: string;
-  petName: string;
-  ownerName: string;
-  service: string;
-  status: string;
-  veterinarian: string;
-}
+import { DetailedAppointment } from '@/types/schemas';
+import { getSpecifiedAppointments, getAllAppointments, cancelAppointment, deleteAppointment } from '@/services/AppointmentServices';
+import AppointmentDetailsModal from '@/components/molecules/AppointmentDetailsModal';
+import EditAppointmentModal from '@/components/molecules/EditAppointmentModal';
+import { toast } from 'react-hot-toast';
 
 export default function AppointmentsPage() {
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [appointments, setAppointments] = useState<DetailedAppointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedAppointment, setSelectedAppointment] = useState<DetailedAppointment | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (user?.role !== 'Admin') {
-      router.push('/profile');
+    if (!user) {
+      router.push('/login');
       return;
     }
-    // TODO: Implement fetch appointments from API
-    setLoading(false);
+    fetchAppointments();
   }, [user, router]);
+
+  const fetchAppointments = async () => {
+    try {
+      const response = user?.role === 'Admin' 
+        ? await getAllAppointments(user?.token || '')
+        : await getSpecifiedAppointments(user?.token || '');
+      
+      if (response.success && response.data) {
+        setAppointments(response.data);
+      } else {
+        toast.error(response.message || 'Error fetching appointments');
+      }
+    } catch (error) {
+      toast.error('Error fetching appointments');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewAppointment = (appointment: DetailedAppointment) => {
+    setSelectedAppointment(appointment);
+    setShowDetailsModal(true);
+  };
+
+  const handleEditAppointment = (appointment: DetailedAppointment) => {
+    setSelectedAppointment(appointment);
+    setShowEditModal(true);
+  };
+
+  const handleDeleteAppointment = async (appointment: DetailedAppointment) => {
+    try {
+      const response = user?.role === 'Admin'
+        ? await deleteAppointment(user?.token || '', appointment.id)
+        : await cancelAppointment(user?.token || '', appointment.id);
+
+      if (response.success) {
+        toast.success(user?.role === 'Admin' ? 'Appointment deleted successfully' : 'Appointment cancelled successfully');
+        fetchAppointments();
+      } else {
+        toast.error(response.message || `Error ${user?.role === 'Admin' ? 'deleting' : 'cancelling'} appointment`);
+      }
+    } catch (error) {
+      toast.error(`Error ${user?.role === 'Admin' ? 'deleting' : 'cancelling'} appointment`);
+    }
+    setShowDeleteConfirm(false);
+  };
+
+  const handleUpdateAppointment = async (updatedAppointment: Partial<DetailedAppointment>) => {
+    if (!selectedAppointment) return;
+
+    try {
+      // TODO: Implement update appointment functionality
+      toast.success('Appointment updated successfully');
+      fetchAppointments();
+    } catch (error) {
+      toast.error('Error updating appointment');
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -39,18 +94,33 @@ export default function AppointmentsPage() {
         return 'bg-yellow-100 text-yellow-800';
       case 'cancelled':
         return 'bg-red-100 text-red-800';
+      case 'confirmed':
+        return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    }).format(date);
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Appointments Management</h1>
-        <button className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600">
-          Schedule New Appointment
-        </button>
+        <h1 className="text-3xl font-bold">{user?.role === 'Admin' ? 'All Appointments' : 'My Appointments'}</h1>
+        {user?.role !== 'Admin' && (
+          <button 
+            onClick={() => router.push('/appointments/new')}
+            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
+          >
+            Schedule New Appointment
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -62,10 +132,11 @@ export default function AppointmentsPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pet</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
+                {user?.role === 'Admin' && (
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Owner</th>
+                )}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Veterinarian</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -75,32 +146,104 @@ export default function AppointmentsPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {appointments.map((appointment) => (
                 <tr key={appointment.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">{appointment.date}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{appointment.time}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{appointment.petName}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{appointment.ownerName}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{appointment.service}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{appointment.veterinarian}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{formatDate(appointment.appointmentDate)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{appointment.pet.name}</td>
+                  {user?.role === 'Admin' && (
+                    <td className="px-6 py-4 whitespace-nowrap">{appointment.user.name}</td>
+                  )}
+                  <td className="px-6 py-4 whitespace-nowrap">{appointment.service.title}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {appointment.veterinarian ? appointment.veterinarian.name : 'Not assigned'}
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(appointment.status)}`}>
                       {appointment.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button className="text-green-600 hover:text-green-900 mr-4">
-                      <FaCheck />
+                    <button 
+                      onClick={() => handleViewAppointment(appointment)}
+                      className="text-blue-600 hover:text-blue-900 mr-4"
+                    >
+                      <FaEye />
                     </button>
-                    <button className="text-blue-600 hover:text-blue-900 mr-4">
-                      <FaEdit />
-                    </button>
-                    <button className="text-red-600 hover:text-red-900">
-                      <FaTimes />
-                    </button>
+                    {(user?.role === 'Admin' || appointment.status === 'Pending') && (
+                      <>
+                        <button 
+                          onClick={() => handleEditAppointment(appointment)}
+                          className="text-yellow-600 hover:text-yellow-900 mr-4"
+                        >
+                          <FaEdit />
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setSelectedAppointment(appointment);
+                            setShowDeleteConfirm(true);
+                          }}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <FaTimes />
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Details Modal */}
+      {selectedAppointment && showDetailsModal && (
+        <AppointmentDetailsModal
+          appointment={selectedAppointment}
+          onClose={() => {
+            setShowDetailsModal(false);
+            setSelectedAppointment(null);
+          }}
+        />
+      )}
+
+      {/* Edit Modal */}
+      {selectedAppointment && showEditModal && (
+        <EditAppointmentModal
+          appointment={selectedAppointment}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedAppointment(null);
+          }}
+          onSave={handleUpdateAppointment}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && selectedAppointment && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              {user?.role === 'Admin' ? 'Confirm Deletion' : 'Confirm Cancellation'}
+            </h3>
+            <p className="text-gray-600 mb-6">
+              {user?.role === 'Admin' 
+                ? 'Are you sure you want to delete this appointment? This action cannot be undone.'
+                : 'Are you sure you want to cancel this appointment? This action cannot be undone.'}
+            </p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDeleteAppointment(selectedAppointment)}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600"
+              >
+                {user?.role === 'Admin' ? 'Delete' : 'Cancel Appointment'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

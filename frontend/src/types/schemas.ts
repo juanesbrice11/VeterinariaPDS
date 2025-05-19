@@ -114,6 +114,12 @@ export interface DetailedAppointment {
     pet: Pet;
     service: ServiceAppointment;
     veterinarian: VeterinarianAppointment;
+    user: {
+        id: number;
+        name: string;
+        email?: string;
+        phone?: string;
+    };
 }
 
 export interface DetailedAppointmentResponse {

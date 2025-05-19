@@ -46,7 +46,7 @@ const ScheduleAppointmentTemplate: React.FC<ScheduleAppointmentTemplateProps> = 
             }
         };
         fetchServices();
-    }, []);
+    }, [token]);
 
     useEffect(() => {
         if (!token) {
