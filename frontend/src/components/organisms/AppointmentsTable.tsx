@@ -5,7 +5,7 @@ import Button from '@/components/atoms/Button';
 import { useRouter } from 'next/navigation';
 import { Calendar, Trash2, AlertCircle } from 'lucide-react';
 import { DetailedAppointment } from '@/types/schemas';
-import { getSpecifiedAppointments } from '@/services/AppointmentServices';
+import { cancelAppointment, getSpecifiedAppointments } from '@/services/AppointmentServices';
 import { toast } from 'react-hot-toast';
 
 const getSpeciesEmoji = (species: string): string => {
@@ -22,37 +22,12 @@ const getSpeciesEmoji = (species: string): string => {
     }
 };
 
-
-const MOCK_APPOINTMENTS = [
-    {
-        id: '1',
-        type: 'General Checkup',
-        pet: {
-            id: '1',
-            name: 'Firulais',
-            imageUrl: 'https://via.placeholder.com/40/FFE9D2/000000?Text=F'
-        },
-        status: 'Pending',
-        date: '2024-04-15T10:00:00'
-    },
-    {
-        id: '2',
-        type: 'Vaccination',
-        pet: {
-            id: '2',
-            name: 'Misu',
-            imageUrl: 'https://via.placeholder.com/40/E2F0FB/000000?Text=M'
-        },
-        status: 'Completed',
-        date: '2024-04-10T15:30:00'
-    }
-];
-
-
 export default function AppointmentsTable() {
     const router = useRouter();
     const [appointments, setAppointments] = useState<DetailedAppointment[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [appointmentToCancel, setAppointmentToCancel] = useState<DetailedAppointment | null>(null);
 
     useEffect(() => {
         const fetchAppointments = async () => {
@@ -107,9 +82,42 @@ export default function AppointmentsTable() {
         console.log('Rescheduling appointment:', appointmentId);
     };
 
-    const handleCancel = (appointmentId: number) => {
-        // Aquí irá la lógica para cancelar la cita
-        console.log('Cancelling appointment:', appointmentId);
+    const handleCancel = async (appointmentId: number) => {
+        const appointment = appointments.find(a => a.id === appointmentId);
+        if (appointment) {
+            setAppointmentToCancel(appointment);
+            setShowCancelModal(true);
+        }
+    };
+
+    const handleConfirmCancel = async () => {
+        if (!appointmentToCancel) return;
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+            toast.error('No active session');
+            return;
+        }
+
+        try {
+            const response = await cancelAppointment(token, appointmentToCancel.id);
+            if (response.success) {
+                toast.success('Appointment cancelled successfully');
+                setAppointments(appointments.map(appointment => 
+                    appointment.id === appointmentToCancel.id 
+                        ? { ...appointment, status: 'Cancelled' }
+                        : appointment
+                ));
+            } else {
+                toast.error(response.message);
+            }
+        } catch (error) {
+            console.error('Error cancelling appointment:', error);
+            toast.error('Error cancelling appointment');
+        } finally {
+            setShowCancelModal(false);
+            setAppointmentToCancel(null);
+        }
     };
 
     if (loading) {
@@ -156,7 +164,7 @@ export default function AppointmentsTable() {
                                         Date & Time
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Actions
+                                        Action
                                     </th>
                                 </tr>
                             </thead>
@@ -193,13 +201,6 @@ export default function AppointmentsTable() {
                                                 {appointment.status.toLowerCase() !== 'completed' && (
                                                     <>
                                                         <button
-                                                            onClick={() => handleReschedule(appointment.id)}
-                                                            className="text-blue-600 hover:text-blue-800 transition-colors"
-                                                            title="Reschedule appointment"
-                                                        >
-                                                            <Calendar className="h-5 w-5" />
-                                                        </button>
-                                                        <button
                                                             onClick={() => handleCancel(appointment.id)}
                                                             className="text-red-600 hover:text-red-800 transition-colors"
                                                             title="Cancel appointment"
@@ -222,6 +223,31 @@ export default function AppointmentsTable() {
                     </div>
                 }
             </div>
+
+            {showCancelModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full">
+                        <h3 className="text-xl font-semibold mb-4">Cancel Appointment</h3>
+                        <p className="text-gray-600 mb-6">
+                            Are you sure you want to cancel this appointment? This action cannot be undone.
+                        </p>
+                        <div className="flex justify-end space-x-4">
+                            <button
+                                onClick={() => setShowCancelModal(false)}
+                                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                            >
+                                No, Keep It
+                            </button>
+                            <button
+                                onClick={handleConfirmCancel}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            >
+                                Yes, Cancel It
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 } 
