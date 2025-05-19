@@ -10,7 +10,7 @@ import { useUserServices } from '@/hooks/useUserServices';
 import { withAuth } from '@/components/hoc/withAuth';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
-import { getPets } from '@/services/PetServices';
+import { getMyPets } from '@/services/PetServices';
 
 const getSpeciesEmoji = (species: string): string => {
     const speciesLower = species.toLowerCase();
@@ -75,15 +75,15 @@ function UserProfile() {
             try {
                 const token = localStorage.getItem('token');
                 if (!token) return;
-                const response = await getPets(token);
-                if (response.success) {
-                    if (response.pets) {
-                        setPets(response.pets);
-                    } else {
-                        setPetsError('No pets found');
-                    }
+                const response = await getMyPets(token);
+                console.log('Pets response:', response);
+                
+                if (response.success && response.pets) {
+                    setPets(response.pets);
+                } else if (Array.isArray(response)) {
+                    setPets(response);
                 } else {
-                    setPetsError('Unexpected response format');
+                    setPetsError(response.message || 'Unexpected response format');
                 }
             } catch (err) {
                 console.error("Failed to load pets:", err);

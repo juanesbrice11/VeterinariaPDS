@@ -173,6 +173,148 @@ export const getPetById = async (id: string, token: string): Promise<PetResponse
     }
 };
 
+export const getMyPets = async (token: string): Promise<{ success: boolean, message?: string, pets?: Pet[] }> => {
+    if (!token) {
+        return { success: false, message: "No active session" };
+    }
+
+    try {
+        const response = await createAuthenticatedRequest(
+            `${API_URL}/pets`,
+            'GET',
+            token
+        );
+
+        console.log('Raw response from API:', response);
+
+        // Si la respuesta tiene el formato { data, status }
+        if (response.data && Array.isArray(response.data)) {
+            return {
+                success: true,
+                pets: response.data
+            };
+        }
+
+        // Si la respuesta es un array directo
+        if (Array.isArray(response)) {
+            return {
+                success: true,
+                pets: response
+            };
+        }
+
+        // Si la respuesta tiene el formato { success, pets }
+        if (response.success && Array.isArray(response.pets)) {
+            return {
+                success: true,
+                pets: response.pets
+            };
+        }
+
+        // Si la respuesta tiene un mensaje de error
+        if (response.message) {
+            return {
+                success: false,
+                message: response.message
+            };
+        }
+
+        // Si la respuesta es un objeto con error
+        if (response.error) {
+            return {
+                success: false,
+                message: response.error
+            };
+        }
+
+        // Si no se pudo determinar el formato
+        return { 
+            success: false, 
+            message: 'Formato de respuesta inesperado' 
+        };
+    } catch (error) {
+        console.error('Error in getMyPets:', error);
+        return {
+            success: false,
+            message: error instanceof Error ? error.message : 'Error fetching pets'
+        };
+    }
+};
+
+export const getAllPets = async (token: string): Promise<{ success: boolean, message?: string, pets?: Pet[] }> => {
+    if (!token) {
+        return { success: false, message: "No active session" };
+    }
+
+    try {
+        const response = await createAuthenticatedRequest(
+            `${API_URL}/pets/all`,
+            'GET',
+            token
+        );
+
+        console.log('Raw response from getAllPets:', response);
+
+        // Si la respuesta tiene el formato { data, status }
+        if (response.data && Array.isArray(response.data)) {
+            console.log('Response has data array:', response.data);
+            return {
+                success: true,
+                pets: response.data
+            };
+        }
+
+        // Si la respuesta es un array directo
+        if (Array.isArray(response)) {
+            console.log('Response is direct array:', response);
+            return {
+                success: true,
+                pets: response
+            };
+        }
+
+        // Si la respuesta tiene el formato { success, pets }
+        if (response.success && Array.isArray(response.pets)) {
+            console.log('Response has success and pets:', response.pets);
+            return {
+                success: true,
+                pets: response.pets
+            };
+        }
+
+        // Si la respuesta tiene un mensaje de error
+        if (response.message) {
+            console.log('Response has error message:', response.message);
+            return {
+                success: false,
+                message: response.message
+            };
+        }
+
+        // Si la respuesta es un objeto con error
+        if (response.error) {
+            console.log('Response has error:', response.error);
+            return {
+                success: false,
+                message: response.error
+            };
+        }
+
+        // Si no se pudo determinar el formato
+        console.log('Unexpected response format:', response);
+        return { 
+            success: false, 
+            message: 'Formato de respuesta inesperado' 
+        };
+    } catch (error) {
+        console.error('Error in getAllPets:', error);
+        return {
+            success: false,
+            message: error instanceof Error ? error.message : 'Error fetching pets'
+        };
+    }
+};
+
 const convertFileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
