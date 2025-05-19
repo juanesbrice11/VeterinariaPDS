@@ -1,44 +1,7 @@
-import { UserProfile, UserResponse } from "@/types/schemas";
+import { GetUsers, UserProfile, UserResponse } from "@/types/schemas";
 import { createAuthenticatedRequest } from "./ApiService";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
-export const createAuthenticatedRequest = async (
-    url: string,
-    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
-    token: string,
-    body?: object
-) => {
-    const headers: HeadersInit = {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-    };
-
-    const requestOptions: RequestInit = {
-        method,
-        headers
-    };
-
-    if (body) {
-        requestOptions.body = JSON.stringify(body);
-    }
-
-    const response = await fetch(url, requestOptions);
-
-    if (response.status === 401) {
-        localStorage.removeItem('token');
-        window.location.href = '/login';
-        return { error: true, message: "Authentication error: Your session has expired" };
-    }
-
-    const data = await response.json();
-
-    if (Array.isArray(data)) {
-        return { data, status: response.status };
-      }
-
-    return { ...data, status: response.status };
-};
 
 export const getActualUser = async (token: string): Promise<UserResponse | { error: string }> => {
     if (!token) {
@@ -74,6 +37,28 @@ export const updateUser = async (
     };
 };
 
+export const updateUser2 = async (
+    userData: GetUsers, 
+    token: string
+): Promise<{ success: boolean, message: string, user?: any }> => {
+    if (!token) {
+        return { success: false, message: "No active session" };
+    }
+
+    const response = await createAuthenticatedRequest(
+        `${API_URL}/users/${userData.cc}/role`,
+        'PUT',
+        token,
+        userData
+    );
+
+    return {
+        success: response.status === 200,
+        message: response.message,
+        user: response.user
+    };
+};
+
 export const updatePassword = async (
     currentPassword: string,
     newPassword: string,
@@ -96,7 +81,6 @@ export const updatePassword = async (
     };
 };
 
-// Obtener lista de usuarios (con paginación opcional)
 export const getUsers = async (
     token: string,
     page: number = 1,
@@ -134,7 +118,6 @@ export const getUsers = async (
     };
   };
 
-// Eliminar un usuario por ID
 export const deleteUser = async (
     userId: number,
     token: string

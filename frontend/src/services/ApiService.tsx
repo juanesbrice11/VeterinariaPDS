@@ -29,5 +29,10 @@ export const createAuthenticatedRequest = async (
     }
 
     const data = await response.json();
+
+    if (Array.isArray(data)) {
+        return { data, status: response.status };
+      }
+
     return { ...data, status: response.status };
-}; 
+};

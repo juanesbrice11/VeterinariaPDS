@@ -19,6 +19,10 @@ export type GetUsers = {
     cc: string;
     name: string;
     email: string;
+    phone: string;
+    birthDate: string;
+    gender: string;
+    address: string;
     status: string;
     role: string
 }
