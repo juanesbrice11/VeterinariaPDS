@@ -164,7 +164,7 @@ export default function AppointmentsTable() {
                                         Date & Time
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Actions
+                                        Action
                                     </th>
                                 </tr>
                             </thead>
@@ -200,13 +200,6 @@ export default function AppointmentsTable() {
                                             <div className="flex space-x-3">
                                                 {appointment.status.toLowerCase() !== 'completed' && (
                                                     <>
-                                                        <button
-                                                            onClick={() => handleReschedule(appointment.id)}
-                                                            className="text-blue-600 hover:text-blue-800 transition-colors"
-                                                            title="Reschedule appointment"
-                                                        >
-                                                            <Calendar className="h-5 w-5" />
-                                                        </button>
                                                         <button
                                                             onClick={() => handleCancel(appointment.id)}
                                                             className="text-red-600 hover:text-red-800 transition-colors"
