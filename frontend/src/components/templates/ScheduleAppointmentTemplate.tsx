@@ -10,7 +10,7 @@ import Image from 'next/image';
 import { getServices } from '@/services/OptionServices';
 import { toast } from 'react-hot-toast';
 import { Pet, Service, Appointment } from '@/types/schemas';
-import { getPets } from '@/services/PetServices';
+import { getMyPets } from '@/services/PetServices';
 import { createAppointment, getAvailableTimeSlots } from '@/services/AppointmentServices';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -53,7 +53,7 @@ const ScheduleAppointmentTemplate: React.FC<ScheduleAppointmentTemplateProps> = 
             return;
         }
         const fetchUserPets = async () => {
-            const response = await getPets(token);
+            const response = await getMyPets(token);
             if (response.success && response.pets) {
                 setPets(response.pets);
             } else {
@@ -64,7 +64,7 @@ const ScheduleAppointmentTemplate: React.FC<ScheduleAppointmentTemplateProps> = 
             setLoading(false);
         };
         fetchUserPets();
-    }, []);
+    }, [token]);
 
     useEffect(() => {
         if (selectedDate && !(selectedDate instanceof Array)) {
