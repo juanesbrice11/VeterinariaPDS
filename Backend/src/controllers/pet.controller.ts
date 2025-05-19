@@ -251,3 +251,82 @@ export const getAllPetsV2 = async (req: AuthenticatedRequest, res: Response): Pr
         });
     }
 };
+
+// Eliminar mascota (solo para Admin o Secretary)
+export const deletePetAdmin = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        // Verificar que el usuario tenga el rol correcto
+        if (!req.user || (req.user.role !== 'Admin' && req.user.role !== 'Secretary')) {
+            res.status(403).json({ 
+                success: false,
+                message: 'No tienes permiso para realizar esta acción' 
+            });
+            return;
+        }
+
+        const { id } = req.params;
+        const petRepo = AppDataSource.getRepository(Pet);
+        const result = await petRepo.delete({ id: parseInt(id) });
+
+        if (result.affected === 0) {
+            res.status(404).json({ 
+                success: false,
+                message: 'Mascota no encontrada' 
+            });
+            return;
+        }
+
+        res.status(200).json({ 
+            success: true,
+            message: 'Mascota eliminada correctamente' 
+        });
+    } catch (error) {
+        console.error('Error en deletePetAdmin:', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Error al eliminar la mascota',
+            error: error instanceof Error ? error.message : 'Error desconocido'
+        });
+    }
+};
+
+// Actualizar mascota (solo para Admin o Secretary)
+export const updatePetAdmin = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        // Verificar que el usuario tenga el rol correcto
+        if (!req.user || (req.user.role !== 'Admin' && req.user.role !== 'Secretary')) {
+            res.status(403).json({ 
+                success: false,
+                message: 'No tienes permiso para realizar esta acción' 
+            });
+            return;
+        }
+
+        const { id } = req.params;
+        const petRepo = AppDataSource.getRepository(Pet);
+        const pet = await petRepo.findOne({ where: { id: parseInt(id) } });
+
+        if (!pet) {
+            res.status(404).json({ 
+                success: false,
+                message: 'Mascota no encontrada' 
+            });
+            return;
+        }
+
+        Object.assign(pet, req.body);
+        await petRepo.save(pet);
+        res.status(200).json({ 
+            success: true,
+            message: 'Mascota actualizada',
+            pet 
+        });
+    } catch (error) {
+        console.error('Error en updatePetAdmin:', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Error al actualizar la mascota',
+            error: error instanceof Error ? error.message : 'Error desconocido'
+        });
+    }
+};

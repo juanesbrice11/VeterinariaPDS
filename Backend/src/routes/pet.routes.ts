@@ -7,7 +7,9 @@ import {
     deletePet,
     createPetSecretary,
     getPetByIdSecretary,
-    getAllPetsV2
+    getAllPetsV2,
+    deletePetAdmin,
+    updatePetAdmin
 } from "../controllers/pet.controller";
 import authenticateToken from "../middlewares/authenticateToken";
 import { authorizeRoles } from "../middlewares/authorizeRoles";
@@ -21,6 +23,8 @@ router.post("/", authenticateToken, createPet);
 router.post("/Secretary", authenticateToken, authorizeRoles('Admin', 'Secretary'), createPetSecretary);
 router.get("/Secretary/:id", authenticateToken, authorizeRoles('Admin', 'Secretary'), getPetByIdSecretary)
 router.put("/:id", authenticateToken, updatePet);
+router.put("/admin/:id", authenticateToken, authorizeRoles('Admin', 'Secretary'), updatePetAdmin);
 router.delete("/:id", authenticateToken, deletePet);
+router.delete("/admin/:id", authenticateToken, authorizeRoles('Admin', 'Secretary'), deletePetAdmin);
 
 export default router;

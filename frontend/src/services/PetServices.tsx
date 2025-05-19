@@ -124,6 +124,18 @@ export const deletePet = async (id: string, token: string): Promise<PetResponse>
     );
 };
 
+export const deletePetAdmin = async (id: string, token: string): Promise<PetResponse> => {
+    if (!token) {
+        return { error: "No active session" };
+    }
+
+    return await createAuthenticatedRequest(
+        `${API_URL}/pets/admin/${id}`,
+        'DELETE',
+        token
+    );
+};
+
 export const getPetById = async (id: string, token: string): Promise<PetResponse> => {
     try {
         // Primero obtener el rol del usuario
@@ -313,6 +325,31 @@ export const getAllPets = async (token: string): Promise<{ success: boolean, mes
             message: error instanceof Error ? error.message : 'Error fetching pets'
         };
     }
+};
+
+export const updatePetAdmin = async (
+    id: string,
+    petData: Partial<Pet>,
+    token: string,
+    image?: File
+): Promise<PetResponse> => {
+    if (!token) {
+        return { success: false, error: "No active session" };
+    }
+
+    const petDataToSend = { ...petData };
+
+    if (image) {
+        const base64Image = await convertFileToBase64(image);
+        petDataToSend.imageUrl = base64Image;
+    }
+
+    return await createAuthenticatedRequest(
+        `${API_URL}/pets/admin/${id}`,
+        'PUT',
+        token,
+        petDataToSend
+    );
 };
 
 const convertFileToBase64 = (file: File): Promise<string> => {
