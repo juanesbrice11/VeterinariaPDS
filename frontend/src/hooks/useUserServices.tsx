@@ -69,8 +69,8 @@ export const useUserServices = () => {
             const result = await updateUser(userData, token);
             setIsLoading(false);
 
-            if (result.error) {
-                setError(result.error);
+            if (!result.success) {
+                setError(result.message);
                 return false;
             }
 
@@ -105,8 +105,8 @@ export const useUserServices = () => {
             const result = await updatePassword(currentPassword, newPassword, token);
             setIsLoading(false);
 
-            if (result.error) {
-                setError(result.error);
+            if (!result.success) {
+                setError(result.message);
                 return false;
             }
 

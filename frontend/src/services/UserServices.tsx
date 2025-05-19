@@ -27,16 +27,11 @@ export const createAuthenticatedRequest = async (
     if (response.status === 401) {
         localStorage.removeItem('token');
         window.location.href = '/login';
-        return { error: "Authentication error: Your session has expired" };
+        return { error: true, message: "Authentication error: Your session has expired" };
     }
 
-    try {
-        const data = await response.json();
-        return data;
-    } catch (error) {
-        console.error("Error parsing JSON response:", error);
-        return { error: "Error processing response" };
-    }
+    const data = await response.json();
+    return { ...data, status: response.status };
 };
 
 export const getActualUser = async (token: string): Promise<UserResponse | { error: string }> => {
@@ -51,9 +46,12 @@ export const getActualUser = async (token: string): Promise<UserResponse | { err
     );
 };
 
-export const updateUser = async (userData: UserProfile, token: string): Promise<{ success?: boolean, error?: string }> => {
+export const updateUser = async (
+    userData: UserProfile, 
+    token: string
+): Promise<{ success: boolean, message: string, user?: any }> => {
     if (!token) {
-        return { error: "No active session" };
+        return { success: false, message: "No active session" };
     }
 
     const response = await createAuthenticatedRequest(
@@ -63,20 +61,20 @@ export const updateUser = async (userData: UserProfile, token: string): Promise<
         userData
     );
 
-    if (response.error) {
-        return { error: response.error || "Error updating user" };
-    }
-
-    return { success: true };
+    return {
+        success: response.status === 200,
+        message: response.message,
+        user: response.user
+    };
 };
 
 export const updatePassword = async (
     currentPassword: string,
     newPassword: string,
     token: string
-): Promise<{ success?: boolean, error?: string }> => {
+): Promise<{ success: boolean, message: string }> => {
     if (!token) {
-        return { error: "No active session" };
+        return { success: false, message: "No active session" };
     }
 
     const response = await createAuthenticatedRequest(
@@ -86,9 +84,8 @@ export const updatePassword = async (
         { currentPassword, newPassword }
     );
 
-    if (response.error) {
-        return { error: response.error || "Error updating password" };
-    }
-
-    return { success: true };
+    return {
+        success: response.status === 200,
+        message: response.message
+    };
 };

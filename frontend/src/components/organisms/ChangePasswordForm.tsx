@@ -13,19 +13,19 @@ const ChangePasswordForm: React.FC = () => {
 
     const validatePassword = (value: string) => {
         if (value.length < 8) {
-            return 'La contraseña debe tener al menos 8 caracteres';
+            return 'Password must be at least 8 characters long';
         }
         if (!/[A-Z]/.test(value)) {
-            return 'La contraseña debe contener al menos una letra mayúscula';
+            return 'Password must contain at least one uppercase letter';
         }
         if (!/[a-z]/.test(value)) {
-            return 'La contraseña debe contener al menos una letra minúscula';
+            return 'Password must contain at least one lowercase letter';
         }
         if (!/[0-9]/.test(value)) {
-            return 'La contraseña debe contener al menos un número';
+            return 'Password must contain at least one number';
         }
         if (!/[!@#$%^&*]/.test(value)) {
-            return 'La contraseña debe contener al menos un carácter especial (!@#$%^&*)';
+            return 'Password must contain at least one special character (!@#$%^&*)';
         }
         return null;
     };
@@ -33,20 +33,20 @@ const ChangePasswordForm: React.FC = () => {
     const fields: FormField[] = [
         {
             name: 'currentPassword',
-            label: 'Contraseña Actual',
+            label: 'Current Password',
             type: showCurrentPassword ? 'text' : 'password',
             required: true,
-            placeholder: 'Ingresa tu contraseña actual',
+            placeholder: 'Enter your current password',
             fullWidth: true,
             showPasswordToggle: true,
             onTogglePassword: () => setShowCurrentPassword(!showCurrentPassword)
         },
         {
             name: 'newPassword',
-            label: 'Nueva Contraseña',
+            label: 'New Password',
             type: showNewPassword ? 'text' : 'password',
             required: true,
-            placeholder: 'Ingresa tu nueva contraseña',
+            placeholder: 'Enter your new password',
             validation: validatePassword,
             fullWidth: true,
             showPasswordToggle: true,
@@ -54,14 +54,14 @@ const ChangePasswordForm: React.FC = () => {
         },
         {
             name: 'confirmPassword',
-            label: 'Confirmar Nueva Contraseña',
+            label: 'Confirm New Password',
             type: showConfirmPassword ? 'text' : 'password',
             required: true,
-            placeholder: 'Confirma tu nueva contraseña',
+            placeholder: 'Confirm your new password',
             validation: (value: string, formData?: Record<string, any>) => {
-                if (!formData?.newPassword) return 'Falta la nueva contraseña';
+                if (!formData?.newPassword) return 'New password is required';
                 if (value !== formData.newPassword) {
-                    return 'Las contraseñas no coinciden';
+                    return 'Passwords do not match';
                 }
                 return null;
             },
@@ -75,51 +75,50 @@ const ChangePasswordForm: React.FC = () => {
         setFormError(null);
 
         if (formData.newPassword !== formData.confirmPassword) {
-            setFormError('Las contraseñas no coinciden');
+            setFormError('Passwords do not match');
             return;
         }
 
         const token = localStorage.getItem('token');
         if (!token) {
-            setFormError('No se encontró el token de autenticación');
+            setFormError('Authentication error: Your session has expired');
             return;
         }
 
         try {
             const response = await updatePassword(formData.currentPassword, formData.newPassword, token);
             
-            if (response.error) {
-                setFormError(response.error);
+            if (!response.success) {
+                setFormError(response.message);
                 return;
             }
 
-            toast.success('Contraseña actualizada exitosamente');
+            toast.success(response.message);
             window.location.reload();
         } catch (error) {
-            console.error('Error al actualizar la contraseña:', error);
-            setFormError('Error al actualizar la contraseña');
+            setFormError('Error updating password');
         }
     };
 
     return (
         <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-6 text-center">Cambiar Contraseña</h2>
+            <h2 className="text-2xl font-bold mb-6 text-center">Change Password</h2>
             
             <div className="mb-4 text-sm text-gray-600">
-                <p>La contraseña debe cumplir con los siguientes requisitos:</p>
+                <p>The password must meet the following requirements:</p>
                 <ul className="list-disc list-inside mt-2">
-                    <li>Mínimo 8 caracteres</li>
-                    <li>Al menos una letra mayúscula</li>
-                    <li>Al menos una letra minúscula</li>
-                    <li>Al menos un número</li>
-                    <li>Al menos un carácter especial (!@#$%^&*)</li>
+                    <li>Minimum 8 characters</li>
+                    <li>At least one uppercase letter</li>
+                    <li>At least one lowercase letter</li>
+                    <li>At least one number</li>
+                    <li>At least one special character (!@#$%^&*)</li>
                 </ul>
             </div>
 
             <GenericForm
                 fields={fields}
                 onSubmit={handleSubmit}
-                submitButtonText="Actualizar Contraseña"
+                submitButtonText="Update Password"
             />
 
             {formError && (

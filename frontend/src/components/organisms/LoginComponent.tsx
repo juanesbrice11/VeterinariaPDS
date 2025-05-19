@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from 'react'
-import { loginUser } from "@/services/AuthServices"; 
+import { loginUser } from "@/services/AuthServices";
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import GenericForm, { FormField } from './GenericForm';
@@ -65,7 +65,7 @@ function LoginComponent() {
         <div className="flex items-center justify-center h-screen bg-[url('/assets/Background.png')] bg-cover bg-center bg-no-repeat">
             <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md text-black">
                 <h2 className="text-2xl font-bold mb-6 text-center">Login</h2>
-                
+
                 <GenericForm
                     fields={fields}
                     onSubmit={handleSubmit}

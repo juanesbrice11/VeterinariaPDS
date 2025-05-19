@@ -30,7 +30,7 @@ export const editProfile = async (req: AuthenticatedRequest, res: Response): Pro
         const user = await userRepository.findOne({ where: { id: req.user?.id } });
 
         if (!user) {
-            res.status(404).json({ message: 'Usuario no encontrado' });
+            res.status(404).json({ message: 'User not found' });
             return;
         }
 
@@ -47,10 +47,10 @@ export const editProfile = async (req: AuthenticatedRequest, res: Response): Pro
 
         await userRepository.save(user);
 
-        res.status(200).json({ message: 'Perfil actualizado correctamente', user });
+        res.status(200).json({ message: 'Profile updated successfully', user });
     } catch (error) {
         console.error('Error en editProfile:', error);
-        res.status(500).json({ message: 'Error al actualizar el perfil' });
+        res.status(500).json({ message: 'Error updating profile' });
     }
 };
 
@@ -127,22 +127,22 @@ const VALID_ROLES = ['Guest', 'Client', 'Veterinario', 'Admin'];
 export const updateUserRole = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const documentNumber = req.params.documentNumber;
-      const { name, email, phone, birthDate, gender, address, bio, role } = req.body;
-  
-      // Validar que venga role y sea válido
-      if (!role || !VALID_ROLES.includes(role)) {
-        res.status(400).json({ message: `Role inválido. Debe ser uno de: ${VALID_ROLES.join(', ')}` });
-        return;
-      }
-  
-      const userRepo = AppDataSource.getRepository(User);
-      const user = await userRepo.findOneBy({ documentNumber} );
-  
-      if (!user) {
-        res.status(404).json({ message: 'Usuario no encontrado' });
-        return;
-      }
-      
+        const { name, email, phone, birthDate, gender, address, bio, role } = req.body;
+
+        // Validar que venga role y sea válido
+        if (!role || !VALID_ROLES.includes(role)) {
+            res.status(400).json({ message: `Role inválido. Debe ser uno de: ${VALID_ROLES.join(', ')}` });
+            return;
+        }
+
+        const userRepo = AppDataSource.getRepository(User);
+        const user = await userRepo.findOneBy({ documentNumber });
+
+        if (!user) {
+            res.status(404).json({ message: 'Usuario no encontrado' });
+            return;
+        }
+
         if (name) user.name = name;
         if (email) user.email = email;
         if (phone) user.phone = phone;
@@ -152,13 +152,13 @@ export const updateUserRole = async (req: AuthenticatedRequest, res: Response): 
         if (address) user.address = address;
         if (bio) user.bio = bio;
 
-      user.role = role;
-      await userRepo.save(user);
-  
-      res.status(200).json({ message: 'Rol actualizado correctamente', user: { id: user.id, role: user.role } });
+        user.role = role;
+        await userRepo.save(user);
+
+        res.status(200).json({ message: 'Rol actualizado correctamente', user: { id: user.id, role: user.role } });
     } catch (error) {
-      console.error('Error en updateUserRole:', error);
-      res.status(500).json({ message: 'Error del servidor' });
+        console.error('Error en updateUserRole:', error);
+        res.status(500).json({ message: 'Error del servidor' });
     }
-  };
+};
 
