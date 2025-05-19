@@ -4,7 +4,8 @@ createAppointment,
 getMyAppointments,
 cancelAppointment,
 updateAppointmentStatus,
-getMyDetailedAppointments
+getMyDetailedAppointments,
+getAvailableTimeSlots
 } from '../controllers/appointment.controller';
 import authenticateToken from '../middlewares/authenticateToken';
 import { authorizeRoles } from '../middlewares/authorizeRoles';
@@ -14,6 +15,7 @@ const router = Router();
 router.post('/', authenticateToken, authorizeRoles('Client', 'Guest'), createAppointment);
 router.get('/', authenticateToken, getMyAppointments);
 router.get('/detailed', authenticateToken, getMyDetailedAppointments);
+router.get('/available-slots', getAvailableTimeSlots);
 router.patch('/:id/cancel', authenticateToken, authorizeRoles('Client', 'Guest'), cancelAppointment);
 router.patch('/:id/status', authenticateToken, authorizeRoles('Veterinario'), updateAppointmentStatus);
 
