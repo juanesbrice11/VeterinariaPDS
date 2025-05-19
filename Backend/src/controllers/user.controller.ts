@@ -9,7 +9,16 @@ export const getUsers = async (req: Request, res: Response) => {
     try {
         const userRepository = AppDataSource.getRepository(User);
         const users = await userRepository.find({
-            select: ["id", "name", "email", "documentType", "documentNumber", "status", "role"]
+            select: ["id",
+                "documentNumber",
+                "name",
+                "email",
+                "phone",
+                "birthDate",
+                "gender",
+                "address",
+                "status",
+                "role"]
         });
         res.json(users);
     } catch (error) {
@@ -87,8 +96,6 @@ export const getMyProfile = async (req: AuthenticatedRequest, res: Response): Pr
     }
 };
 
-
-
 export const changePassword = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const { currentPassword, newPassword } = req.body;
@@ -127,9 +134,8 @@ const VALID_ROLES = ['Guest', 'Client', 'Veterinario', 'Admin'];
 export const updateUserRole = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const documentNumber = req.params.documentNumber;
-        const { name, email, phone, birthDate, gender, address, bio, role } = req.body;
+        const { cc, name, email, phone, birthDate, gender, address, role } = req.body;
 
-        // Validar que venga role y sea válido
         if (!role || !VALID_ROLES.includes(role)) {
             res.status(400).json({ message: `Role inválido. Debe ser uno de: ${VALID_ROLES.join(', ')}` });
             return;
@@ -142,7 +148,7 @@ export const updateUserRole = async (req: AuthenticatedRequest, res: Response): 
             res.status(404).json({ message: 'Usuario no encontrado' });
             return;
         }
-
+        if (cc) user.documentNumber = cc
         if (name) user.name = name;
         if (email) user.email = email;
         if (phone) user.phone = phone;
@@ -150,7 +156,6 @@ export const updateUserRole = async (req: AuthenticatedRequest, res: Response): 
         if (gender) user.gender = gender;
         if (role) user.role = role;
         if (address) user.address = address;
-        if (bio) user.bio = bio;
 
         user.role = role;
         await userRepo.save(user);
@@ -159,6 +164,37 @@ export const updateUserRole = async (req: AuthenticatedRequest, res: Response): 
     } catch (error) {
         console.error('Error en updateUserRole:', error);
         res.status(500).json({ message: 'Error del servidor' });
+    }
+};
+
+export const deleteUser = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const userId = parseInt(req.params.id);
+        
+        if (isNaN(userId)) {
+            res.status(400).json({ message: "ID de usuario inválido" });
+            return;
+        }
+
+        const userRepository = AppDataSource.getRepository(User);
+        const user = await userRepository.findOne({ where: { id: userId } });
+
+        if (!user) {
+            res.status(404).json({ message: "Usuario no encontrado" });
+            return;
+        }
+
+        // Verificar que el usuario no se está eliminando a sí mismo
+        if (req.user?.id === userId) {
+            res.status(400).json({ message: "No puedes eliminar tu propia cuenta" });
+            return;
+        }
+
+        await userRepository.remove(user);
+        res.status(200).json({ message: "Usuario eliminado exitosamente" });
+    } catch (error) {
+        console.error("Error en deleteUser:", error);
+        res.status(500).json({ message: "Error al eliminar el usuario" });
     }
 };
 
