@@ -1,4 +1,5 @@
 import { UserProfile, UserResponse } from "@/types/schemas";
+import { createAuthenticatedRequest } from "./ApiService";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 

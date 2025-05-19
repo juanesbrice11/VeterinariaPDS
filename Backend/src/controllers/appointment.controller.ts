@@ -129,3 +129,55 @@ export const updateAppointmentStatus = async (req: AuthenticatedRequest, res: Re
         res.status(500).json({ message: 'Error al actualizar la cita' });
     }
 };
+
+export const getMyDetailedAppointments = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const appointmentRepository = AppDataSource.getRepository(Appointment);
+        
+        const appointments = await appointmentRepository.find({
+            where: { userId: req.user?.id },
+            relations: {
+                pet: true,
+                service: true,
+                veterinarian: true
+            },
+            select: {
+                id: true,
+                appointmentDate: true,
+                status: true,
+                createdAt: true,
+                updatedAt: true,
+                pet: {
+                    id: true,
+                    name: true,
+                    species: true,
+                    breed: true
+                },
+                service: {
+                    id: true,
+                    title: true,
+                    description: true
+                },
+                veterinarian: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    phone: true
+                }
+            },
+            order: {
+                appointmentDate: 'DESC'
+            }
+        });
+
+        res.status(200).json({
+            message: "Appointments retrieved successfully",
+            data: appointments
+        });
+    } catch (error) {
+        console.error("Error in getMyDetailedAppointments:", error);
+        res.status(500).json({
+            message: "Error retrieving appointments"
+        });
+    }
+};

@@ -47,18 +47,10 @@ export type UserProfile = {
 }
 
 export interface Pet {
-    id?: number;
+    id: number;
     name: string;
     species: string;
-    breed?: string;
-    color?: string;
-    birthDate?: string;
-    gender?: string;
-    weight?: number;
-    ownerId?: number;
-    createdAt?: string;
-    updatedAt?: string;
-    imageUrl?: string;
+    breed: string;
 }
 
 export interface PetResponse {
@@ -71,4 +63,64 @@ export interface PetsListResponse {
     data?: Pet[];
     error?: string;
     message?: string;
+}
+
+export interface ServiceAppointment {
+    id: number;
+    title: string;
+    description: string;
+}
+
+export interface Service{
+    id: number;
+    title: string;
+    description: string;
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface VeterinarianAppointment {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+}
+
+export interface DetailedAppointment {
+    id: number;
+    appointmentDate: string;
+    status: 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled';
+    createdAt: string;
+    updatedAt: string;
+    pet: Pet;
+    service: ServiceAppointment;
+    veterinarian: VeterinarianAppointment;
+}
+
+export interface DetailedAppointmentResponse {
+    success: boolean;
+    message?: string;
+    data?: DetailedAppointment[];
+}
+
+export interface Appointment {
+    id: number;
+    userId: number;
+    petId: number;
+    serviceId: number;
+    veterinarianId?: number;
+    appointmentDate: string;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+    petName?: string;
+    petSpecies?: string;
+    serviceName?: string;
+}
+
+export interface AppointmentResponse {
+    success: boolean;
+    message?: string;
+    appointments?: Appointment[];
 }

@@ -7,22 +7,14 @@ import Button from '@/components/atoms/Button';
 import Navbar from '@/components/organisms/Navbar';
 import Footer from '@/components/organisms/Footer';
 import Image from 'next/image';
+import { getServices } from '@/services/OptionServices';
+import { toast } from 'react-hot-toast';
+import { Pet, Service } from '@/types/schemas';
+import { getPets } from '@/services/PetServices';
 
 type ValuePiece = Date | null;
 type CalendarValue = ValuePiece | [ValuePiece, ValuePiece];
 
-const MOCK_USER_PETS: FormFieldOption[] = [
-    { value: 'firulais', label: 'Firulais' },
-    { value: 'misu', label: 'Misu' },
-    { value: 'rex', label: 'Rex' },
-    { value: 'luna', label: 'Luna' },
-];
-
-const MOCK_SERVICES: FormFieldOption[] = [
-    { value: 'grooming', label: 'Grooming Service' },
-    { value: 'vaccine', label: 'Pet Vaccine' },
-    { value: 'visit', label: 'Pet Visit' },
-];
 
 interface ScheduleAppointmentTemplateProps { }
 
@@ -30,6 +22,45 @@ const ScheduleAppointmentTemplate: React.FC<ScheduleAppointmentTemplateProps> = 
     const [selectedDate, setSelectedDate] = useState<CalendarValue>(new Date());
     const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
     const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
+    const [services, setServices] = useState<Service[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [pets, setPets] = useState<Pet[]>([]);
+    const token = localStorage.getItem('token');
+
+    useEffect(() => {
+        if (!token) {
+            return;
+        }
+        const fetchServices = async () => {
+            const response = await getServices(token);
+            if (response.success && response.services) {
+                setServices(response.services);
+            } else {
+                if (response.message) {
+                    toast.error(response.message);
+                }
+            }
+        };
+        fetchServices();
+    }, []);
+
+    useEffect(() => {
+        if (!token) {
+            return;
+        }
+        const fetchUserPets = async () => {
+            const response = await getPets(token);
+            if (response.success && response.pets) {
+                setPets(response.pets);
+            } else {
+                if (response.message) {
+                    toast.error(response.message);
+                }
+            }
+            setLoading(false);
+        };
+        fetchUserPets();        
+    }, []);
 
     useEffect(() => {
         if (selectedDate && !(selectedDate instanceof Array)) {
@@ -52,20 +83,30 @@ const ScheduleAppointmentTemplate: React.FC<ScheduleAppointmentTemplateProps> = 
         setSelectedTimeSlot(timeSlot);
     };
 
+    const serviceOptions: FormFieldOption[] = services.map(service => ({
+        value: service.id.toString(),
+        label: service.title
+    }));
+
+    const petOptions: FormFieldOption[] = pets.map(pet => ({
+        value: pet.id.toString(),
+        label: pet.name
+    }));
+
     const appointmentFields: FormField[] = [
         {
             name: 'petId',
             label: 'Pet',
             type: 'select',
             required: true,
-            options: MOCK_USER_PETS,
+            options: petOptions,
         },
         {
-            name: 'serviceType',
+            name: 'serviceId',
             label: 'Service Type',
             type: 'select',
             required: true,
-            options: MOCK_SERVICES,
+            options: serviceOptions,
         },
         {
             name: 'notes',
@@ -77,21 +118,21 @@ const ScheduleAppointmentTemplate: React.FC<ScheduleAppointmentTemplateProps> = 
 
     const handleAppointmentSubmit = (formData: Record<string, any>) => {
         if (!selectedDate || selectedDate instanceof Array) {
-            alert('Please select a valid date.');
+            toast.error('Please select a valid date.');
             return;
         }
         if (!selectedTimeSlot) {
-            alert('Please select a time slot.');
+            toast.error('Please select a time slot.');
             return;
         }
         const petField = appointmentFields.find(f => f.name === 'petId');
         if (petField && petField.required && !formData.petId) {
-            alert('Please select a pet.');
+            toast.error('Please select a pet.');
             return;
         }
-        const serviceField = appointmentFields.find(f => f.name === 'serviceType');
-        if (serviceField && serviceField.required && !formData.serviceType) {
-            alert('Please select a service type.');
+        const serviceField = appointmentFields.find(f => f.name === 'serviceId');
+        if (serviceField && serviceField.required && !formData.serviceId) {
+            toast.error('Please select a service type.');
             return;
         }
 
@@ -101,14 +142,34 @@ const ScheduleAppointmentTemplate: React.FC<ScheduleAppointmentTemplateProps> = 
             appointmentTime: selectedTimeSlot,
         };
         console.log('Appointment Form Submitted:', submissionData);
-        const selectedPetObject = MOCK_USER_PETS.find(pet => pet.value === formData.petId);
-        const petNameForAlert = selectedPetObject ? selectedPetObject.label : 'N/A';
+        
+        const selectedPetObject = pets.find(pet => pet.id.toString() === formData.petId);
+        const petNameForAlert = selectedPetObject ? selectedPetObject.name : 'N/A';
 
-        const selectedServiceObject = MOCK_SERVICES.find(service => service.value === formData.serviceType);
-        const serviceNameForAlert = selectedServiceObject ? selectedServiceObject.label : 'N/A';
+        const selectedServiceObject = services.find(service => service.id.toString() === formData.serviceId);
+        const serviceNameForAlert = selectedServiceObject ? selectedServiceObject.title : 'N/A';
 
-        alert(`Form submitted!\nPet: ${petNameForAlert}\nService: ${serviceNameForAlert}\nDate: ${submissionData.appointmentDate}\nTime: ${submissionData.appointmentTime}\nCheck the console for all data.`);
+        toast.success(`Appointment scheduled successfully!\nPet: ${petNameForAlert}\nService: ${serviceNameForAlert}\nDate: ${submissionData.appointmentDate}\nTime: ${submissionData.appointmentTime}`);
     };
+
+    if (loading) {
+        return (
+            <div className="flex flex-col min-h-screen relative">
+                <Navbar />
+                <main className="flex-grow container mx-auto px-4 py-8">
+                    <div className="w-full max-w-4xl mx-auto bg-white rounded-xl shadow-md p-8">
+                        <div className="flex items-center justify-center p-12">
+                            <div className="text-center">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                                <p className="text-gray-600">Loading services...</p>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+                <Footer />
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col min-h-screen relative">
@@ -167,7 +228,7 @@ const ScheduleAppointmentTemplate: React.FC<ScheduleAppointmentTemplateProps> = 
                                         fields={appointmentFields}
                                         onSubmit={handleAppointmentSubmit}
                                         submitButtonText="Schedule Appointment"
-                                        initialValues={{ petId: '', serviceType: '' }}
+                                        initialValues={{ petId: '', serviceId: '' }}
                                     />
                                 </div>
                             )}

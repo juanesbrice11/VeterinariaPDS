@@ -62,7 +62,6 @@ const PetProfileTemplate: React.FC<PetProfileTemplateProps> = ({ petId }) => {
         }
 
         const response = await getPet(petId, token);
-        console.log('Response from getPet:', response);
 
         if (response.error) {
           throw new Error(response.error);

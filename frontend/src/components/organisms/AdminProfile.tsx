@@ -34,7 +34,7 @@ const getSpeciesEmoji = (species: string): string => {
     }
 };
 
-function UserProfile() {
+function AdminProfile() {
     const [userData, setUserData] = useState<UserResponse | null>(null);
     const [pets, setPets] = useState<Pet[]>([]);
     const [petsLoading, setPetsLoading] = useState(true);
@@ -75,15 +75,16 @@ function UserProfile() {
             try {
                 const token = localStorage.getItem('token');
                 if (!token) return;
+
                 const response = await getPets(token);
-                if (response.success) {
-                    if (response.pets) {
-                        setPets(response.pets);
-                    } else {
-                        setPetsError('No pets found');
-                    }
+                if (Array.isArray(response)) {
+                    setPets(response);
+                } else if (response.error) {
+                    setPetsError(response.error);
+                } else if (response.data) {
+                    setPets(response.data);
                 } else {
-                    setPetsError('Unexpected response format');
+                    setPetsError('Formato de respuesta inesperado');
                 }
             } catch (err) {
                 console.error("Failed to load pets:", err);
@@ -105,8 +106,8 @@ function UserProfile() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-white via-white via-[35.1%] to-[#FFE9D2] to-[87.02%] p-6 text-black">
-                <h1 className="text-3xl font-bold mb-6 text-center">My Profile</h1>
+            <div className="min-h-screen bg-p-6 text-black">
+                <h1 className="text-3xl font-bold mb-6 text-center">My Profile Admin</h1>
                 <div className="flex items-center justify-center p-12">
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
@@ -120,7 +121,7 @@ function UserProfile() {
     if (error) {
         return (
             <div className="min-h-screen bg-gradient-to-b from-white via-white via-[35.1%] to-[#FFE9D2] to-[87.02%] p-6 text-black">
-                <h1 className="text-3xl font-bold mb-6 text-center">My Profile</h1>
+                <h1 className="text-3xl font-bold mb-6 text-center">My Profile Admin</h1>
                 <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-6">
                     <p className="text-red-500 mb-4">Error loading profile: {error}</p>
                     <Button
@@ -135,8 +136,8 @@ function UserProfile() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-white via-white via-[35.1%] to-[#FFE9D2] to-[87.02%] p-6 text-black">
-            <h1 className="text-3xl font-bold mb-6 text-center">My Profile</h1>
+        <div className="min-h-screen bg-white p-6 text-black">
+            <h1 className="text-3xl font-bold mb-6 text-center">My Profile Admin</h1>
 
             {userData ? (
                 <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-6 space-y-4">
@@ -265,4 +266,4 @@ function UserProfile() {
     );
 }
 
-export default withAuth(UserProfile);
+export default withAuth(AdminProfile);
