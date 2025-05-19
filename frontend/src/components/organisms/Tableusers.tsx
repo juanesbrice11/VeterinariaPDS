@@ -1,15 +1,18 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getUsers, deleteUser } from "@/services/UserServices";
+import { getUsers, deleteUser, updateUser2 } from "@/services/UserServices";
 import { toast } from 'react-hot-toast';
-import { GetUsers } from "@/types/schemas";
+import { GetUsers} from "@/types/schemas";
 import Navbar from '@/components/organisms/Navbar';
+import EditUserModal from "@/components/molecules/EditUserModal";
 
 const UsersPage = () => {
   const [users, setUsers] = useState<GetUsers[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [editUser, setEditUser] = useState<GetUsers | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -36,6 +39,48 @@ const UsersPage = () => {
       }
       await deleteUser(id, token);
       fetchUsers();
+    }
+  };
+
+  const handleEdit = (user: GetUsers) => {
+    setEditUser(user);
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (updatedUser: GetUsers) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.error('Authentication token not found');
+      return;
+    }
+
+    try {
+      const userProfile: GetUsers = {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        cc: updatedUser.cc,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        birthDate: updatedUser.birthDate,
+        gender: updatedUser.gender,
+        address: updatedUser.address,
+        role: updatedUser.role,
+        status: updatedUser.status
+
+      };
+
+      const response = await updateUser2(userProfile, token);
+      if (response.success) {
+        toast.success('Usuario actualizado correctamente');
+        setIsModalOpen(false);
+        setEditUser(null);
+        fetchUsers();
+      } else {
+        toast.error(response.message || 'Error al actualizar el usuario');
+      }
+    } catch (error) {
+      toast.error('Error al actualizar el usuario');
+      console.error('Error updating user:', error);
     }
   };
 
@@ -68,7 +113,10 @@ const UsersPage = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm capitalize">{u.status}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm capitalize">{u.role}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-center space-x-2">
-                    <button className="px-4 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition">
+                    <button
+                      className="px-4 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition"
+                      onClick={() => handleEdit(u)}
+                    >
                       Edit
                     </button>
                     <button
@@ -107,6 +155,12 @@ const UsersPage = () => {
           </div>
         </div>
       </div>
+      <EditUserModal
+        isOpen={isModalOpen}
+        onClose={() => { setIsModalOpen(false); setEditUser(null); }}
+        user={editUser}
+        onSave={handleSave}
+      />
     </div>
   );
 };
