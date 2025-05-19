@@ -150,3 +150,58 @@ export const deletePet = async (req: AuthenticatedRequest, res: Response): Promi
         res.status(500).json({ message: 'Error al eliminar la mascota' });
     }
 };
+
+// Obtener todas las mascotas
+export const getAllPets = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const petRepo = AppDataSource.getRepository(Pet);
+        
+        // Primero intentamos obtener las mascotas sin relaciones
+        const pets = await petRepo.find({
+            relations: {
+                owner: true
+            }
+        });
+        
+        if (!pets || pets.length === 0) {
+            console.log('No se encontraron mascotas');
+            res.status(404).json({ 
+                success: false,
+                message: 'No se encontraron mascotas' 
+            });
+            return;
+        }
+
+        // Transformamos los datos para asegurar el formato correcto
+        const formattedPets = pets.map(pet => ({
+            id: pet.id,
+            name: pet.name,
+            species: pet.species,
+            breed: pet.breed,
+            color: pet.color,
+            birthDate: pet.birthDate,
+            gender: pet.gender,
+            weight: pet.weight,
+            createdAt: pet.createdAt,
+            updatedAt: pet.updatedAt,
+            owner: pet.owner ? {
+                id: pet.owner.id,
+                name: pet.owner.name,
+                email: pet.owner.email,
+                phone: pet.owner.phone
+            } : null
+        }));
+
+        res.status(200).json({
+            success: true,
+            pets: formattedPets
+        });
+    } catch (error) {
+        console.error('Error detallado en getAllPets:', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Error al obtener las mascotas',
+            error: error instanceof Error ? error.message : 'Error desconocido'
+        });
+    }
+};
