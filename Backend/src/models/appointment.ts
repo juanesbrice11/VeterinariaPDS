@@ -43,8 +43,12 @@ export class Appointment extends BaseEntity {
     @Column({ type: 'timestamp' })
     appointmentDate: Date;
 
-    @Column({ default: 'Pending' })
-    status: string; // Pending, Confirmed, Completed, Cancelled
+    @Column({ 
+        type: 'enum',
+        enum: ['Pending', 'Completed', 'Cancelled'],
+        default: 'Pending'
+    })
+    status: 'Pending' | 'Completed' | 'Cancelled'; // Pending: cita futura, Completed: cita pasada o manualmente completada, Cancelled: cita cancelada
 
     @CreateDateColumn()
     createdAt: Date;

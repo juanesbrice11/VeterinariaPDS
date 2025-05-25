@@ -9,7 +9,8 @@ import {
     getAllAppointments,
     getAppointmentById,
     updateAppointment,
-    deleteAppointment
+    deleteAppointment,
+    getAppointmentsByDate
 } from '../controllers/appointment.controller';
 import authenticateToken from '../middlewares/authenticateToken';
 import { authorizeRoles } from '../middlewares/authorizeRoles';
@@ -26,6 +27,7 @@ router.patch('/:id/status', authenticateToken, authorizeRoles('Veterinario'), up
 
 // Admin routes
 router.get('/admin/all', authenticateToken, authorizeRoles('Admin'), getAllAppointments);
+router.get('/admin/filtered', authenticateToken, authorizeRoles('Admin'), getAppointmentsByDate);
 router.get('/admin/:id', authenticateToken, authorizeRoles('Admin'), getAppointmentById);
 router.put('/admin/:id', authenticateToken, authorizeRoles('Admin'), updateAppointment);
 router.delete('/admin/:id', authenticateToken, authorizeRoles('Admin'), deleteAppointment);

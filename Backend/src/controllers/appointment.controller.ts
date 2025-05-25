@@ -120,8 +120,28 @@ export const cancelAppointment = async (req: AuthenticatedRequest, res: Response
             return;
         }
 
-        if (appointment.status === 'Cancelled' || appointment.status === 'Completed') {
-            res.status(400).json({ message: 'La cita no puede ser cancelada' });
+        if (appointment.status === 'Cancelled') {
+            res.status(400).json({ message: 'La cita ya está cancelada' });
+            return;
+        }
+
+        if (appointment.status === 'Completed') {
+            res.status(400).json({ message: 'No se puede cancelar una cita completada' });
+            return;
+        }
+
+        // Calcular la diferencia en días entre la fecha actual y la fecha de la cita
+        const appointmentDate = new Date(appointment.appointmentDate);
+        const now = new Date();
+        const diffTime = appointmentDate.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        // Verificar si faltan 2 días o menos para la cita
+        if (diffDays <= 2) {
+            res.status(400).json({ 
+                message: 'No se puede cancelar la cita. Debe cancelar con al menos 2 días de anticipación',
+                daysUntilAppointment: diffDays
+            });
             return;
         }
 
@@ -140,8 +160,8 @@ export const updateAppointmentStatus = async (req: AuthenticatedRequest, res: Re
         const { id } = req.params;
         const { status } = req.body;
 
-        if (!['Confirmed', 'Completed'].includes(status)) {
-            res.status(400).json({ message: 'Estado inválido' });
+        if (!['Completed', 'Cancelled'].includes(status)) {
+            res.status(400).json({ message: 'Estado inválido. Solo se permite Completed o Cancelled' });
             return;
         }
 
@@ -150,6 +170,11 @@ export const updateAppointmentStatus = async (req: AuthenticatedRequest, res: Re
 
         if (!appointment) {
             res.status(404).json({ message: 'Cita no encontrada o no autorizada' });
+            return;
+        }
+
+        if (appointment.status === 'Cancelled') {
+            res.status(400).json({ message: 'No se puede modificar una cita cancelada' });
             return;
         }
 
@@ -265,6 +290,9 @@ export const getAvailableTimeSlots = async (req: Request, res: Response): Promis
 
 export const getAllAppointments = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
+        // Primero actualizar los estados automáticamente
+        await updateAppointmentStatuses();
+
         const appointmentRepository = AppDataSource.getRepository(Appointment);
         
         const appointments = await appointmentRepository.find({
@@ -305,13 +333,30 @@ export const getAllAppointments = async (req: AuthenticatedRequest, res: Respons
                 }
             },
             order: {
-                appointmentDate: 'DESC'
+                appointmentDate: 'ASC'
             }
+        });
+
+        // Definir los tipos de estado posibles
+        type AppointmentStatus = 'Pending' | 'Completed' | 'Cancelled';
+        
+        // Ordenar las citas
+        const sortedAppointments = appointments.sort((a, b) => {
+            const statusOrder: Record<AppointmentStatus, number> = {
+                'Pending': 0,
+                'Completed': 1,
+                'Cancelled': 2
+            };
+            
+            const statusDiff = statusOrder[a.status as AppointmentStatus] - statusOrder[b.status as AppointmentStatus];
+            if (statusDiff !== 0) return statusDiff;
+            
+            return new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime();
         });
 
         res.status(200).json({
             message: "All appointments retrieved successfully",
-            data: appointments
+            data: sortedAppointments
         });
     } catch (error) {
         console.error("Error in getAllAppointments:", error);
@@ -485,5 +530,112 @@ export const deleteAppointment = async (req: AuthenticatedRequest, res: Response
         res.status(500).json({
             message: "Error deleting appointment"
         });
+    }
+};
+
+export const getAppointmentsByDate = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { year, month, day } = req.query;
+        const appointmentRepository = AppDataSource.getRepository(Appointment);
+
+        let startDate: Date;
+        let endDate: Date;
+
+        // Validate year
+        if (!year || isNaN(Number(year))) {
+            res.status(400).json({ message: "El año es requerido y debe ser un número válido" });
+            return;
+        }
+
+        // Create date range based on provided parameters
+        if (month && !isNaN(Number(month))) {
+            if (day && !isNaN(Number(day))) {
+                // Filter by specific day
+                startDate = new Date(Number(year), Number(month) - 1, Number(day));
+                endDate = new Date(Number(year), Number(month) - 1, Number(day), 23, 59, 59, 999);
+            } else {
+                // Filter by month
+                startDate = new Date(Number(year), Number(month) - 1, 1);
+                endDate = new Date(Number(year), Number(month), 0, 23, 59, 59, 999);
+            }
+        } else {
+            // Filter by year
+            startDate = new Date(Number(year), 0, 1);
+            endDate = new Date(Number(year), 11, 31, 23, 59, 59, 999);
+        }
+
+        const appointments = await appointmentRepository.find({
+            where: {
+                appointmentDate: Between(startDate, endDate)
+            },
+            relations: {
+                pet: true,
+                service: true,
+                veterinarian: true,
+                user: true
+            },
+            select: {
+                id: true,
+                appointmentDate: true,
+                status: true,
+                createdAt: true,
+                updatedAt: true,
+                pet: {
+                    id: true,
+                    name: true,
+                    species: true,
+                    breed: true
+                },
+                service: {
+                    id: true,
+                    title: true,
+                    description: true
+                },
+                veterinarian: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    phone: true
+                },
+                user: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    phone: true
+                }
+            },
+            order: {
+                appointmentDate: 'DESC'
+            }
+        });
+
+        res.status(200).json({
+            message: "Appointments retrieved successfully",
+            data: appointments
+        });
+    } catch (error) {
+        console.error("Error in getAppointmentsByDate:", error);
+        res.status(500).json({
+            message: "Error retrieving appointments"
+        });
+    }
+};
+
+// Función para actualizar automáticamente el estado de las citas
+export const updateAppointmentStatuses = async (): Promise<void> => {
+    try {
+        const appointmentRepository = AppDataSource.getRepository(Appointment);
+        const now = new Date();
+
+        // Actualizar citas pasadas a 'Completed'
+        await appointmentRepository
+            .createQueryBuilder()
+            .update(Appointment)
+            .set({ status: 'Completed' })
+            .where('appointmentDate < :now', { now })
+            .andWhere('status = :status', { status: 'Pending' })
+            .execute();
+    } catch (error) {
+        console.error('Error updating appointment statuses:', error);
     }
 };

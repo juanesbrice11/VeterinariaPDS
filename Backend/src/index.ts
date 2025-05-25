@@ -32,7 +32,12 @@ const initializeApp = async () => {
             await AppDataSource.initialize();
             console.log("📌 Base de datos conectada correctamente");
         }
+        
+        // Iniciar el servidor
         app.listen(PORT, () => console.log(`🚀 Servidor en http://localhost:${PORT}`));
+        
+        // Iniciar el cron job después de que la base de datos esté conectada
+        await startNotificationCron();
     } catch (error) {
         console.error("❌ Error en la conexión:", error);
         process.exit(1);
@@ -42,7 +47,6 @@ const initializeApp = async () => {
 // Solo inicializar la aplicación si no estamos en modo test
 if (process.env.NODE_ENV !== 'test') {
     initializeApp();
-    startNotificationCron(); 
 }
 
 export { app, initializeApp };
