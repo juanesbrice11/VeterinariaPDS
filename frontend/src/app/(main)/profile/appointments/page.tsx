@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaCheck, FaTimes, FaEye } from 'react-icons/fa';
+import { FaEdit, FaCheck, FaTimes, FaEye, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { DetailedAppointment } from '@/types/schemas';
@@ -19,6 +19,9 @@ export default function AppointmentsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const [searchTerm, setSearchTerm] = useState('');
 
   console.log('Component rendered, user:', user);
 
@@ -137,6 +140,25 @@ export default function AppointmentsPage() {
     }).format(date);
   };
 
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page on search
+    // ... existing code ...
+  };
+
+  // Pagination logic
+  const indexOfLastAppointment = currentPage * itemsPerPage;
+  const indexOfFirstAppointment = indexOfLastAppointment - itemsPerPage;
+  const currentAppointments = appointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
+  const totalPages = Math.ceil(appointments.length / itemsPerPage);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+        setCurrentPage(newPage);
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -172,51 +194,59 @@ export default function AppointmentsPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {appointments.map((appointment) => (
-                <tr key={appointment.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(appointment.appointmentDate)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{appointment.pet.name}</td>
-                  {user?.role === 'Admin' && (
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{appointment.user.name}</td>
-                  )}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{appointment.service.title}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {appointment.veterinarian ? appointment.veterinarian.name : 'Not assigned'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(appointment.status)}`}>
-                      {appointment.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button 
-                      onClick={() => handleViewAppointment(appointment)}
-                      className="text-blue-600 hover:text-blue-900 mr-4"
-                    >
-                      <FaEye />
-                    </button>
-                    {(user?.role === 'Admin' || appointment.status === 'Pending') && (
-                      <>
-                        <button 
-                          onClick={() => handleEditAppointment(appointment)}
-                          className="text-yellow-600 hover:text-yellow-900 mr-4"
-                        >
-                          <FaEdit />
-                        </button>
-                        <button 
-                          onClick={() => {
-                            setSelectedAppointment(appointment);
-                            setShowDeleteConfirm(true);
-                          }}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <FaTimes />
-                        </button>
-                      </>
+              {currentAppointments.length > 0 ? (
+                currentAppointments.map((appointment) => (
+                  <tr key={appointment.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(appointment.appointmentDate)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{appointment.pet.name}</td>
+                    {user?.role === 'Admin' && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{appointment.user.name}</td>
                     )}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{appointment.service.title}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {appointment.veterinarian ? appointment.veterinarian.name : 'Not assigned'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(appointment.status)}`}>
+                        {appointment.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button 
+                        onClick={() => handleViewAppointment(appointment)}
+                        className="text-blue-600 hover:text-blue-900 mr-4"
+                      >
+                        <FaEye />
+                      </button>
+                      {(user?.role === 'Admin' || appointment.status === 'Pending') && (
+                        <>
+                          <button 
+                            onClick={() => handleEditAppointment(appointment)}
+                            className="text-yellow-600 hover:text-yellow-900 mr-4"
+                          >
+                            <FaEdit />
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setSelectedAppointment(appointment);
+                              setShowDeleteConfirm(true);
+                            }}
+                            className="text-red-600 hover:text-red-900"
+                          >
+                            <FaTimes />
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
+                    No appointments found.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -271,6 +301,42 @@ export default function AppointmentsPage() {
                 {user?.role === 'Admin' ? 'Delete' : 'Cancel Appointment'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {appointments.length > 0 && (
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-sm text-gray-700">
+            Mostrando {indexOfFirstAppointment + 1} a {Math.min(indexOfLastAppointment, appointments.length)} de {appointments.length} citas
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className={`p-2 rounded-md ${
+                currentPage === 1
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <FaChevronLeft />
+            </button>
+            <span className="text-sm text-gray-700">
+              Página {currentPage} de {totalPages}
+            </span>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className={`p-2 rounded-md ${
+                currentPage === totalPages
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <FaChevronRight />
+            </button>
           </div>
         </div>
       )}

@@ -5,6 +5,7 @@ import { getAllPets } from '@/services/PetServices';
 import { useAuth } from '@/context/AuthContext';
 import { withAuth } from '@/components/hoc/withAuth';
 import Link from 'next/link';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 const getSpeciesEmoji = (species: string): string => {
     const speciesLower = species.toLowerCase();
@@ -30,8 +31,11 @@ const getSpeciesEmoji = (species: string): string => {
 
 function AdminPetsPage() {
     const [pets, setPets] = useState<Pet[]>([]);
+    const [filteredPets, setFilteredPets] = useState<Pet[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
     const { isAuthenticated } = useAuth();
 
     useEffect(() => {
@@ -48,6 +52,7 @@ function AdminPetsPage() {
 
                 if (response.success && response.pets) {
                     setPets(response.pets);
+                    setFilteredPets(response.pets);
                 } else {
                     setError(response.message || 'Error al cargar las mascotas');
                 }
@@ -61,6 +66,18 @@ function AdminPetsPage() {
 
         fetchPets();
     }, [isAuthenticated]);
+
+    // Calcular los pets para la página actual
+    const indexOfLastPet = currentPage * itemsPerPage;
+    const indexOfFirstPet = indexOfLastPet - itemsPerPage;
+    const currentPets = filteredPets.slice(indexOfFirstPet, indexOfLastPet);
+    const totalPages = Math.ceil(filteredPets.length / itemsPerPage);
+
+    const handlePageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+        }
+    };
 
     if (loading) {
         return (
@@ -96,7 +113,7 @@ function AdminPetsPage() {
                 </Link>
             </div>
 
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="bg-white rounded-lg shadow overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
@@ -118,14 +135,14 @@ function AdminPetsPage() {
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {pets.length === 0 ? (
+                        {currentPets.length === 0 ? (
                             <tr>
                                 <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
                                     No hay mascotas registradas
                                 </td>
                             </tr>
                         ) : (
-                            pets.map((pet) => (
+                            currentPets.map((pet) => (
                                 <tr key={pet.id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center">
@@ -169,6 +186,42 @@ function AdminPetsPage() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Pagination */}
+            {filteredPets.length > 0 && (
+                <div className="mt-4 flex items-center justify-between">
+                    <div className="text-sm text-gray-700">
+                        Mostrando {indexOfFirstPet + 1} a {Math.min(indexOfLastPet, filteredPets.length)} de {filteredPets.length} mascotas
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <button
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className={`p-2 rounded-md ${
+                                currentPage === 1
+                                    ? 'text-gray-400 cursor-not-allowed'
+                                    : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                        >
+                            <FaChevronLeft />
+                        </button>
+                        <span className="text-sm text-gray-700">
+                            Página {currentPage} de {totalPages}
+                        </span>
+                        <button
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className={`p-2 rounded-md ${
+                                currentPage === totalPages
+                                    ? 'text-gray-400 cursor-not-allowed'
+                                    : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                        >
+                            <FaChevronRight />
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -2,6 +2,9 @@ import { Request, Response } from 'express';
 import { AppDataSource } from '../config/ormconfig';
 import { Pet } from '../models/pet';
 import { AuthenticatedRequest } from '../middlewares/authenticateToken';
+import { Appointment } from '../models/appointment';
+import { MedicalRecord } from '../models/medicalRecord';
+import { Notification } from '../models/notifications'
 
 // Crear nueva mascota
 export const createPet = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
@@ -265,8 +268,25 @@ export const deletePetAdmin = async (req: AuthenticatedRequest, res: Response): 
         }
 
         const { id } = req.params;
+        const petId = parseInt(id);
+
+        // Obtener los repositorios necesarios
         const petRepo = AppDataSource.getRepository(Pet);
-        const result = await petRepo.delete({ id: parseInt(id) });
+        const appointmentRepo = AppDataSource.getRepository(Appointment);
+        const medicalRecordRepo = AppDataSource.getRepository(MedicalRecord);
+        const notificationRepo = AppDataSource.getRepository(Notification);
+
+        // Primero eliminar las citas asociadas
+        await appointmentRepo.delete({ petId });
+        
+        // Eliminar los registros médicos asociados
+        await medicalRecordRepo.delete({ petId });
+        
+        // Eliminar las notificaciones asociadas
+        await notificationRepo.delete({ petId });
+
+        // Finalmente eliminar la mascota
+        const result = await petRepo.delete({ id: petId });
 
         if (result.affected === 0) {
             res.status(404).json({ 
@@ -278,7 +298,7 @@ export const deletePetAdmin = async (req: AuthenticatedRequest, res: Response): 
 
         res.status(200).json({ 
             success: true,
-            message: 'Mascota eliminada correctamente' 
+            message: 'Mascota y sus registros asociados eliminados correctamente' 
         });
     } catch (error) {
         console.error('Error en deletePetAdmin:', error);
