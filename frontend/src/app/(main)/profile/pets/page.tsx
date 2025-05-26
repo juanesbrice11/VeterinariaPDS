@@ -33,8 +33,8 @@ export default function VetPets() {
             }
             console.log('Fetching pets for role:', user?.role);
             
-            // Usar getAllPets si el usuario es administrador, de lo contrario usar getMyPets
-            const response = user?.role === 'Admin' 
+            // Usar getAllPets si el usuario es administrador o veterinario, de lo contrario usar getMyPets
+            const response = user?.role === 'Admin' || user?.role === 'Veterinario'
                 ? await getAllPets(token)
                 : await getMyPets(token);
                 

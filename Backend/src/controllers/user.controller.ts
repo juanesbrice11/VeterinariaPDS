@@ -4,6 +4,10 @@ import { AppDataSource } from "../config/ormconfig";
 import { AuthenticatedRequest } from "../middlewares/authenticateToken";
 import * as bcrypt from "bcryptjs";
 import { validationResult } from "express-validator";
+import { Appointment } from "../models/appointment";
+import { MedicalRecord } from "../models/medicalRecord";
+import { Pet } from "../models/pet";
+import { Notification } from "../models/notifications";
 
 export const getUsers = async (req: Request, res: Response) => {
     try {
@@ -177,6 +181,11 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response): Prom
         }
 
         const userRepository = AppDataSource.getRepository(User);
+        const appointmentRepository = AppDataSource.getRepository(Appointment);
+        const medicalRecordRepository = AppDataSource.getRepository(MedicalRecord);
+        const petRepository = AppDataSource.getRepository(Pet);
+        const notificationRepository = AppDataSource.getRepository(Notification);
+
         const user = await userRepository.findOne({ where: { id: userId } });
 
         if (!user) {
@@ -190,11 +199,70 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response): Prom
             return;
         }
 
+        // Eliminar registros relacionados
+        await appointmentRepository.delete({ userId });
+        await medicalRecordRepository.delete({ veterinarianId: userId });
+        await notificationRepository.delete({ userId });
+
+        // Obtener y eliminar las mascotas del usuario
+        const userPets = await petRepository.find({ where: { ownerId: userId } });
+        for (const pet of userPets) {
+            // Eliminar citas asociadas a la mascota
+            await appointmentRepository.delete({ petId: pet.id });
+            // Eliminar registros médicos de la mascota
+            await medicalRecordRepository.delete({ petId: pet.id });
+            // Eliminar notificaciones de la mascota
+            await notificationRepository.delete({ petId: pet.id });
+        }
+        // Eliminar las mascotas
+        await petRepository.delete({ ownerId: userId });
+
+        // Finalmente eliminar el usuario
         await userRepository.remove(user);
-        res.status(200).json({ message: "Usuario eliminado exitosamente" });
+        res.status(200).json({ message: "Usuario y sus registros asociados eliminados exitosamente" });
     } catch (error) {
         console.error("Error en deleteUser:", error);
         res.status(500).json({ message: "Error al eliminar el usuario" });
+    }
+};
+
+export const getUserById = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = parseInt(req.params.id);
+        
+        if (isNaN(userId)) {
+            res.status(400).json({ message: "ID de usuario inválido" });
+            return;
+        }
+
+        const userRepository = AppDataSource.getRepository(User);
+        const user = await userRepository.findOne({
+            where: { id: userId },
+            select: [
+                "id",
+                "documentNumber",
+                "name",
+                "email",
+                "phone",
+                "birthDate",
+                "gender",
+                "address",
+                "status",
+                "role",
+                "createdAt",
+                "updatedAt"
+            ]
+        });
+
+        if (!user) {
+            res.status(404).json({ message: "Usuario no encontrado" });
+            return;
+        }
+
+        res.status(200).json(user);
+    } catch (error) {
+        console.error("Error en getUserById:", error);
+        res.status(500).json({ message: "Error al obtener el usuario" });
     }
 };
 

@@ -26,10 +26,10 @@ router.patch('/:id/cancel', authenticateToken, authorizeRoles('Client', 'Guest',
 router.patch('/:id/status', authenticateToken, authorizeRoles('Veterinario'), updateAppointmentStatus);
 
 // Admin routes
-router.get('/admin/all', authenticateToken, authorizeRoles('Admin'), getAllAppointments);
-router.get('/admin/filtered', authenticateToken, authorizeRoles('Admin'), getAppointmentsByDate);
-router.get('/admin/:id', authenticateToken, authorizeRoles('Admin'), getAppointmentById);
-router.put('/admin/:id', authenticateToken, authorizeRoles('Admin'), updateAppointment);
+router.get('/admin/all', authenticateToken, authorizeRoles('Admin', 'Veterinario'), getAllAppointments);
+router.get('/admin/filtered', authenticateToken, authorizeRoles('Admin', 'Veterinario'), getAppointmentsByDate);
+router.get('/admin/:id', authenticateToken, authorizeRoles('Admin', 'Veterinario'), getAppointmentById);
+router.put('/admin/:id', authenticateToken, authorizeRoles('Admin', 'Veterinario'), updateAppointment);
 router.delete('/admin/:id', authenticateToken, authorizeRoles('Admin'), deleteAppointment);
 
 export default router;

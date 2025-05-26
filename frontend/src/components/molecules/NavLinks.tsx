@@ -8,7 +8,6 @@ export default function NavLinks() {
     const links = [
         { href: '/', label: 'Home' },
         { href: '/services', label: 'Services' },
-        { href: '/about', label: 'About' },
         ...(isAuthenticated ? [{ href: '/appointments', label: 'Appointments' }] : []),
     ];
 
