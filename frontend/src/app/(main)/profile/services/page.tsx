@@ -33,7 +33,7 @@ function ServicesPage() {
         try {
             const token = localStorage.getItem('token');
             if (!token) {
-                setError('No hay sesión activa');
+                setError('No active session');
                 return;
             }
 
@@ -44,13 +44,13 @@ function ServicesPage() {
                 setServices(response.services);
                 setFilteredServices(response.services);
             } else {
-                const errorMessage = response.message || 'Error al cargar los servicios';
+                const errorMessage = response.message || 'Error loading services';
                 console.error('Error loading services:', errorMessage);
                 setError(errorMessage);
             }
         } catch (err) {
             console.error("Failed to load services:", err);
-            setError('Error al cargar los servicios. Por favor, intente nuevamente.');
+            setError('Error loading services. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -106,7 +106,7 @@ function ServicesPage() {
     };
 
     const handleDelete = async (serviceId: number) => {
-        if (!window.confirm('¿Estás seguro de que deseas eliminar este servicio?')) {
+        if (!window.confirm('Are you sure you want to delete this service?')) {
             return;
         }
 
@@ -117,14 +117,14 @@ function ServicesPage() {
             const response = await deleteService(serviceId, token);
             
             if (response.success) {
-                toast.success('Servicio eliminado correctamente');
+                toast.success('Service deleted successfully');
                 await fetchServices();
             } else {
-                toast.error(response.message || 'Error al eliminar el servicio');
+                toast.error(response.message || 'Error deleting service');
             }
         } catch (err) {
             console.error('Error deleting service:', err);
-            toast.error('Error al eliminar el servicio');
+            toast.error('Error deleting service');
         }
     };
 
@@ -138,15 +138,15 @@ function ServicesPage() {
             const response = await updateService(editingService.id, editingService, token);
             
             if (response.success) {
-                toast.success('Servicio actualizado correctamente');
+                toast.success('Service updated successfully');
                 await fetchServices();
                 setEditingService(null);
             } else {
-                toast.error(response.message || 'Error al actualizar el servicio');
+                toast.error(response.message || 'Error updating service');
             }
         } catch (err) {
             console.error('Error updating service:', err);
-            toast.error('Error al actualizar el servicio');
+            toast.error('Error updating service');
         }
     };
 
@@ -158,26 +158,26 @@ function ServicesPage() {
             const response = await createService(newService, token);
             
             if (response.success) {
-                toast.success('Servicio creado correctamente');
+                toast.success('Service created successfully');
                 await fetchServices();
                 setIsCreating(false);
             } else {
-                toast.error(response.message || 'Error al crear el servicio');
+                toast.error(response.message || 'Error creating service');
             }
         } catch (err) {
             console.error('Error creating service:', err);
-            toast.error('Error al crear el servicio');
+            toast.error('Error creating service');
         }
     };
 
     if (loading) {
         return (
             <div className="min-h-screen bg-white p-6">
-                <h1 className="text-3xl font-bold mb-6">Gestión de Servicios</h1>
+                <h1 className="text-3xl font-bold mb-6">Service Management</h1>
                 <div className="flex items-center justify-center p-12">
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-                        <p className="text-gray-600">Cargando servicios...</p>
+                        <p className="text-gray-600">Loading services...</p>
                     </div>
                 </div>
             </div>
@@ -187,7 +187,7 @@ function ServicesPage() {
     if (error) {
         return (
             <div className="min-h-screen bg-white p-6">
-                <h1 className="text-3xl font-bold mb-6">Gestión de Servicios</h1>
+                <h1 className="text-3xl font-bold mb-6">Service Management</h1>
                 <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
                     {error}
                 </div>
@@ -198,7 +198,7 @@ function ServicesPage() {
     return (
         <div className="min-h-screen bg-white p-6">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-700">Gestión de Servicios</h1>
+                <h1 className="text-3xl font-bold text-gray-700">Service Management</h1>
                 
                 <div className="flex items-center space-x-4">
                     {/* Search Input */}
@@ -210,7 +210,7 @@ function ServicesPage() {
                             type="text"
                             value={searchTerm}
                             onChange={handleSearch}
-                            placeholder="Buscar por nombre o descripción..."
+                            placeholder="Search by name or description..."
                             className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-64 text-gray-900 placeholder-gray-500"
                         />
                     </div>
@@ -221,7 +221,7 @@ function ServicesPage() {
                         className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 flex items-center space-x-2"
                     >
                         <FaPlus />
-                        <span>Nuevo Servicio</span>
+                        <span>New Service</span>
                     </button>
                 </div>
             </div>
@@ -230,10 +230,10 @@ function ServicesPage() {
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Nombre</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Descripción</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Estado</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Acciones</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Name</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Description</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -252,7 +252,7 @@ function ServicesPage() {
                                                 ? 'bg-green-100 text-green-800' 
                                                 : 'bg-red-100 text-red-800'
                                         }`}>
-                                            {service.isActive ? 'Activo' : 'Inactivo'}
+                                            {service.isActive ? 'Active' : 'Inactive'}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -260,21 +260,21 @@ function ServicesPage() {
                                             <button
                                                 onClick={() => handleView(service)}
                                                 className="text-emerald-600 hover:text-emerald-700 transition-colors"
-                                                title="Ver Detalles"
+                                                title="View Details"
                                             >
                                                 <FaEye size={18} />
                                             </button>
                                             <button
                                                 onClick={() => handleEdit(service)}
                                                 className="text-amber-600 hover:text-amber-700 transition-colors"
-                                                title="Editar Servicio"
+                                                title="Edit Service"
                                             >
                                                 <FaEdit size={18} />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(service.id)}
                                                 className="text-rose-500 hover:text-rose-600 transition-colors"
-                                                title="Eliminar Servicio"
+                                                title="Delete Service"
                                             >
                                                 <FaTrash size={18} />
                                             </button>
@@ -285,7 +285,7 @@ function ServicesPage() {
                         ) : (
                             <tr>
                                 <td colSpan={4} className="px-6 py-4 text-center text-sm font-medium text-gray-900">
-                                    {searchTerm ? 'No se encontraron servicios que coincidan con la búsqueda' : 'No hay servicios registrados'}
+                                    {searchTerm ? 'No services found matching your search' : 'No services registered'}
                                 </td>
                             </tr>
                         )}
@@ -297,7 +297,7 @@ function ServicesPage() {
             {filteredServices.length > 0 && (
                 <div className="mt-4 flex items-center justify-between">
                     <div className="text-sm text-gray-700">
-                        Mostrando {indexOfFirstService + 1} a {Math.min(indexOfLastService, filteredServices.length)} de {filteredServices.length} servicios
+                        Showing {indexOfFirstService + 1} to {Math.min(indexOfLastService, filteredServices.length)} of {filteredServices.length} services
                     </div>
                     <div className="flex items-center space-x-2">
                         <button
@@ -312,7 +312,7 @@ function ServicesPage() {
                             <FaChevronLeft />
                         </button>
                         <span className="text-sm text-gray-700">
-                            Página {currentPage} de {totalPages}
+                            Page {currentPage} of {totalPages}
                         </span>
                         <button
                             onClick={() => handlePageChange(currentPage + 1)}
@@ -333,19 +333,19 @@ function ServicesPage() {
             {selectedService && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Detalles del Servicio</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Service Details</h3>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Nombre</label>
+                                <label className="block text-sm font-medium text-gray-700">Name</label>
                                 <p className="mt-1 text-sm text-gray-900">{selectedService.title}</p>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Descripción</label>
+                                <label className="block text-sm font-medium text-gray-700">Description</label>
                                 <p className="mt-1 text-sm text-gray-900">{selectedService.description}</p>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Estado</label>
-                                <p className="mt-1 text-sm text-gray-900">{selectedService.isActive ? 'Activo' : 'Inactivo'}</p>
+                                <label className="block text-sm font-medium text-gray-700">Status</label>
+                                <p className="mt-1 text-sm text-gray-900">{selectedService.isActive ? 'Active' : 'Inactive'}</p>
                             </div>
                         </div>
                         <div className="mt-6 flex justify-end">
@@ -353,7 +353,7 @@ function ServicesPage() {
                                 onClick={() => setSelectedService(null)}
                                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                             >
-                                Cerrar
+                                Close
                             </button>
                         </div>
                     </div>
@@ -364,10 +364,10 @@ function ServicesPage() {
             {editingService && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Editar Servicio</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Service</h3>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Nombre</label>
+                                <label className="block text-sm font-medium text-gray-700">Name</label>
                                 <input
                                     type="text"
                                     value={editingService.title}
@@ -376,7 +376,7 @@ function ServicesPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Descripción</label>
+                                <label className="block text-sm font-medium text-gray-700">Description</label>
                                 <textarea
                                     value={editingService.description}
                                     onChange={(e) => setEditingService({...editingService, description: e.target.value})}
@@ -385,14 +385,14 @@ function ServicesPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Estado</label>
+                                <label className="block text-sm font-medium text-gray-700">Status</label>
                                 <select
                                     value={editingService.isActive ? 'true' : 'false'}
                                     onChange={(e) => setEditingService({...editingService, isActive: e.target.value === 'true'})}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-gray-900"
                                 >
-                                    <option value="true">Activo</option>
-                                    <option value="false">Inactivo</option>
+                                    <option value="true">Active</option>
+                                    <option value="false">Inactive</option>
                                 </select>
                             </div>
                         </div>
@@ -401,13 +401,13 @@ function ServicesPage() {
                                 onClick={() => setEditingService(null)}
                                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                             >
-                                Cancelar
+                                Cancel
                             </button>
                             <button
                                 onClick={handleUpdateService}
                                 className="px-4 py-2 text-sm font-medium text-white bg-orange-500 rounded-md hover:bg-orange-600"
                             >
-                                Guardar
+                                Save
                             </button>
                         </div>
                     </div>
@@ -418,26 +418,26 @@ function ServicesPage() {
             {isCreating && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Nuevo Servicio</h3>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">New Service</h3>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Nombre</label>
+                                <label className="block text-sm font-medium text-gray-700">Name</label>
                                 <input
                                     type="text"
                                     value={newService.title}
                                     onChange={(e) => setNewService({...newService, title: e.target.value})}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-gray-900"
-                                    placeholder="Ingrese el nombre del servicio"
+                                    placeholder="Enter service name"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Descripción</label>
+                                <label className="block text-sm font-medium text-gray-700">Description</label>
                                 <textarea
                                     value={newService.description}
                                     onChange={(e) => setNewService({...newService, description: e.target.value})}
                                     rows={3}
                                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-gray-900"
-                                    placeholder="Ingrese la descripción del servicio"
+                                    placeholder="Enter service description"
                                 />
                             </div>
                         </div>
@@ -446,13 +446,13 @@ function ServicesPage() {
                                 onClick={() => setIsCreating(false)}
                                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                             >
-                                Cancelar
+                                Cancel
                             </button>
                             <button
                                 onClick={handleCreateService}
                                 className="px-4 py-2 text-sm font-medium text-white bg-orange-500 rounded-md hover:bg-orange-600"
                             >
-                                Crear
+                                Create
                             </button>
                         </div>
                     </div>

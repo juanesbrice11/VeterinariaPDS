@@ -22,32 +22,32 @@ export default function PetsPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
-    const fetchPets = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            const token = localStorage.getItem('token');
-            if (!token) {
-                throw new Error('No authentication token found');
+        const fetchPets = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    throw new Error('No authentication token found');
+                }
+                console.log('Fetching pets...');
+                const response = await getPets(token);
+                console.log('Pets response:', response);
+                
+                if (response.success && response.pets) {
+                    console.log('Setting pets:', response.pets);
+                    setPets(response.pets);
+                    setFilteredPets(response.pets);
+                } else {
+                    throw new Error(response.message || 'Error fetching pets');
+                }
+            } catch (err) {
+                console.error('Error fetching pets:', err);
+                setError(err instanceof Error ? err.message : 'Error connecting to the server');
+            } finally {
+                setLoading(false);
             }
-            console.log('Fetching pets...');
-            const response = await getPets(token);
-            console.log('Pets response:', response);
-            
-            if (response.success && response.pets) {
-                console.log('Setting pets:', response.pets);
-                setPets(response.pets);
-                setFilteredPets(response.pets);
-            } else {
-                throw new Error(response.message || 'Error fetching pets');
-            }
-        } catch (err) {
-            console.error('Error fetching pets:', err);
-            setError(err instanceof Error ? err.message : 'Error connecting to the server');
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
 
     useEffect(() => {
         fetchPets();
@@ -58,22 +58,22 @@ export default function PetsPage() {
     };
 
     const handleDelete = async (id: number) => {
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                throw new Error('No authentication token found');
-            }
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) {
+                    throw new Error('No authentication token found');
+                }
 
             const response = await deletePetAdmin(id.toString(), token);
             
-            if (response.success) {
+                    if (response.success) {
                 // Actualizar la lista de mascotas después de eliminar
                 await fetchPets();
-            } else {
+                    } else {
                 throw new Error(response.message || 'Error al eliminar la mascota');
-            }
-        } catch (err) {
-            console.error('Error deleting pet:', err);
+                }
+            } catch (err) {
+                console.error('Error deleting pet:', err);
             setError(err instanceof Error ? err.message : 'Error al eliminar la mascota');
         }
     };
@@ -144,11 +144,26 @@ export default function PetsPage() {
         );
     }
 
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-white p-6">
+                <h1 className="text-3xl font-bold mb-6">Pet Management</h1>
+                <div className="flex items-center justify-center p-12">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading pets...</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="p-6">
+        <div className="min-h-screen bg-white p-6">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-700">Pets</h1>
+                <h1 className="text-3xl font-bold text-gray-700">Pet Management</h1>
                 
+                <div className="flex items-center space-x-4">
                 {/* Search Input */}
                 <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -158,17 +173,13 @@ export default function PetsPage() {
                         type="text"
                         value={searchTerm}
                         onChange={handleSearch}
-                        placeholder="Search by ID or name..."
+                            placeholder="Search by name, species or breed..."
                         className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-64 text-gray-900 placeholder-gray-500"
                     />
+                    </div>
                 </div>
             </div>
 
-            {loading ? (
-                <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-                </div>
-            ) : (
                 <div className="bg-white rounded-lg shadow overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
@@ -182,8 +193,8 @@ export default function PetsPage() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {currentPets.length > 0 ? (
-                                currentPets.map((pet) => (
+                        {currentPets.length > 0 ? (
+                            currentPets.map((pet) => (
                                     <tr key={pet.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{pet.id}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{pet.name}</td>
@@ -226,14 +237,13 @@ export default function PetsPage() {
                             )}
                         </tbody>
                     </table>
-                </div>
-            )}
+            </div>
 
             {/* Pagination */}
             {filteredPets.length > 0 && (
                 <div className="mt-4 flex items-center justify-between">
                     <div className="text-sm text-gray-700">
-                        Mostrando {indexOfFirstPet + 1} a {Math.min(indexOfLastPet, filteredPets.length)} de {filteredPets.length} mascotas
+                        Showing {indexOfFirstPet + 1} to {Math.min(indexOfLastPet, filteredPets.length)} of {filteredPets.length} pets
                     </div>
                     <div className="flex items-center space-x-2">
                         <button
@@ -248,7 +258,7 @@ export default function PetsPage() {
                             <FaChevronLeft />
                         </button>
                         <span className="text-sm text-gray-700">
-                            Página {currentPage} de {totalPages}
+                            Page {currentPage} of {totalPages}
                         </span>
                         <button
                             onClick={() => handlePageChange(currentPage + 1)}
@@ -265,19 +275,91 @@ export default function PetsPage() {
                 </div>
             )}
 
+            {/* Pet Details Modal */}
             {selectedPet && (
-                <PetDetailsModal
-                    pet={selectedPet}
-                    onClose={() => setSelectedPet(null)}
-                />
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Pet Details</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Name</label>
+                                <p className="mt-1 text-sm text-gray-900">{selectedPet.name}</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Species</label>
+                                <p className="mt-1 text-sm text-gray-900">{selectedPet.species}</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Breed</label>
+                                <p className="mt-1 text-sm text-gray-900">{selectedPet.breed}</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Owner</label>
+                                <p className="mt-1 text-sm text-gray-900">{selectedPet.owner?.name || 'N/A'}</p>
+                            </div>
+                        </div>
+                        <div className="mt-6 flex justify-end">
+                            <button
+                                onClick={() => setSelectedPet(null)}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
+            {/* Edit Pet Modal */}
             {editingPet && (
-                <EditPetModal
-                    pet={editingPet}
-                    onClose={() => setEditingPet(null)}
-                    onSave={handleSaveEdit}
-                />
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Pet</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Name</label>
+                                <input
+                                    type="text"
+                                    value={editingPet.name}
+                                    onChange={(e) => setEditingPet({...editingPet, name: e.target.value})}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-gray-900"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Species</label>
+                                <input
+                                    type="text"
+                                    value={editingPet.species}
+                                    onChange={(e) => setEditingPet({...editingPet, species: e.target.value})}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-gray-900"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Breed</label>
+                                <input
+                                    type="text"
+                                    value={editingPet.breed}
+                                    onChange={(e) => setEditingPet({...editingPet, breed: e.target.value})}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-gray-900"
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-6 flex justify-end space-x-4">
+                            <button
+                                onClick={() => setEditingPet(null)}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => handleSaveEdit(editingPet)}
+                                className="px-4 py-2 text-sm font-medium text-white bg-orange-500 rounded-md hover:bg-orange-600"
+                            >
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

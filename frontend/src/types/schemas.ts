@@ -94,6 +94,7 @@ export interface Service{
     title: string;
     description: string;
     isActive: boolean;
+    price?: number;
     createdAt: string;
     updatedAt: string;
 }
