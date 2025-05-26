@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaCheck, FaTimes, FaEye, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaEdit, FaCheck, FaTimes, FaEye, FaChevronLeft, FaChevronRight, FaSearch, FaPlus, FaTrash } from 'react-icons/fa';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { DetailedAppointment } from '@/types/schemas';
@@ -12,50 +12,38 @@ import { toast } from 'react-hot-toast';
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<DetailedAppointment[]>([]);
+  const [filteredAppointments, setFilteredAppointments] = useState<DetailedAppointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAppointment, setSelectedAppointment] = useState<DetailedAppointment | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const { user } = useAuth();
-  const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-  const [searchTerm, setSearchTerm] = useState('');
-
-  console.log('Component rendered, user:', user);
+  const { user } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
-    console.log('useEffect triggered, user:', user);
-    
     if (!user) {
-      console.log('No user found, redirecting to login');
       router.push('/login');
       return;
     }
-    console.log('User found, calling fetchAppointments');
     fetchAppointments();
   }, [user, router]);
 
   const fetchAppointments = async () => {
-    console.log('fetchAppointments started');
     try {
-      console.log('User data:', {
-        token: user?.token,
-        role: user?.role,
-        id: user?.id
-      });
-      
+      setLoading(true);
       const response = user?.role === 'Admin' 
         ? await getAllAppointments(user?.token || '')
         : await getSpecifiedAppointments(user?.token || '');
       
-      console.log('API Response:', response);
-      
       if (response.success && response.data) {
         setAppointments(response.data);
+        setFilteredAppointments(response.data);
       } else {
-        console.log('Error in response:', response);
         toast.error(response.message || 'Error fetching appointments');
       }
     } catch (error) {
@@ -64,6 +52,84 @@ export default function AppointmentsPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    setCurrentPage(1);
+    
+    filterAppointments(value, dateFilter);
+  };
+
+  const handleDateFilter = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const filter = e.target.value;
+    setDateFilter(filter);
+    setCurrentPage(1);
+    
+    filterAppointments(searchTerm, filter);
+  };
+
+  const filterAppointments = (search: string, dateFilter: string) => {
+    let filtered = appointments;
+
+    // Filter by search term
+    if (search.trim()) {
+      filtered = filtered.filter(appointment => 
+        appointment.pet.name.toLowerCase().includes(search.toLowerCase()) ||
+        appointment.service.title.toLowerCase().includes(search.toLowerCase()) ||
+        appointment.user.name.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    // Filter by date
+    const now = new Date();
+    switch (dateFilter) {
+      case 'today':
+        filtered = filtered.filter(appointment => {
+          const appointmentDate = new Date(appointment.appointmentDate);
+          return appointmentDate.toDateString() === now.toDateString();
+        });
+        break;
+      case 'tomorrow':
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        filtered = filtered.filter(appointment => {
+          const appointmentDate = new Date(appointment.appointmentDate);
+          return appointmentDate.toDateString() === tomorrow.toDateString();
+        });
+        break;
+      case 'week':
+        const weekEnd = new Date(now);
+        weekEnd.setDate(weekEnd.getDate() + 7);
+        filtered = filtered.filter(appointment => {
+          const appointmentDate = new Date(appointment.appointmentDate);
+          return appointmentDate >= now && appointmentDate <= weekEnd;
+        });
+        break;
+      case 'month':
+        const monthEnd = new Date(now);
+        monthEnd.setMonth(monthEnd.getMonth() + 1);
+        filtered = filtered.filter(appointment => {
+          const appointmentDate = new Date(appointment.appointmentDate);
+          return appointmentDate >= now && appointmentDate <= monthEnd;
+        });
+        break;
+      case 'past':
+        filtered = filtered.filter(appointment => {
+          const appointmentDate = new Date(appointment.appointmentDate);
+          return appointmentDate < now;
+        });
+        break;
+      case 'upcoming':
+        filtered = filtered.filter(appointment => {
+          const appointmentDate = new Date(appointment.appointmentDate);
+          return appointmentDate > now;
+        });
+        break;
+    }
+
+    setFilteredAppointments(filtered);
   };
 
   const handleViewAppointment = (appointment: DetailedAppointment) => {
@@ -140,119 +206,206 @@ export default function AppointmentsPage() {
     }).format(date);
   };
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    setCurrentPage(1); // Reset to first page on search
-    // ... existing code ...
-  };
-
   // Pagination logic
   const indexOfLastAppointment = currentPage * itemsPerPage;
   const indexOfFirstAppointment = indexOfLastAppointment - itemsPerPage;
-  const currentAppointments = appointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
-  const totalPages = Math.ceil(appointments.length / itemsPerPage);
+  const currentAppointments = filteredAppointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
+  const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
-        setCurrentPage(newPage);
+      setCurrentPage(newPage);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white p-6">
+        <h1 className="text-3xl font-bold mb-6">Appointment Management</h1>
+        <div className="flex items-center justify-center p-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading appointments...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-white p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">{user?.role === 'Admin' ? 'All Appointments' : 'My Appointments'}</h1>
-        {user?.role !== 'Admin' && (
-          <button 
-            onClick={() => router.push('/appointments/new')}
-            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
+        <h1 className="text-3xl font-bold text-gray-700">Appointment Management</h1>
+        
+        <div className="flex items-center space-x-4">
+          {/* Date Filter */}
+          <select
+            value={dateFilter}
+            onChange={handleDateFilter}
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
           >
-            Schedule New Appointment
-          </button>
-        )}
+            <option value="all">All Dates</option>
+            <option value="today">Today</option>
+            <option value="tomorrow">Tomorrow</option>
+            <option value="week">Next 7 Days</option>
+            <option value="month">Next 30 Days</option>
+            <option value="past">Past Appointments</option>
+            <option value="upcoming">Upcoming Appointments</option>
+          </select>
+
+          {/* Search Input */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FaSearch className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={handleSearch}
+              placeholder="Search by pet name, service or client..."
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-64 text-gray-900 placeholder-gray-500"
+            />
+          </div>
+
+          {user?.role !== 'Admin' && (
+            <button 
+              onClick={() => router.push('/appointments/new')}
+              className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 flex items-center space-x-2"
+            >
+              <FaPlus />
+              <span>New Appointment</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Date & Time</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Pet</th>
-                {user?.role === 'Admin' && (
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Owner</th>
-                )}
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Service</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Veterinarian</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {currentAppointments.length > 0 ? (
-                currentAppointments.map((appointment) => (
-                  <tr key={appointment.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatDate(appointment.appointmentDate)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{appointment.pet.name}</td>
-                    {user?.role === 'Admin' && (
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{appointment.user.name}</td>
-                    )}
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{appointment.service.title}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {appointment.veterinarian ? appointment.veterinarian.name : 'Not assigned'}
-                    </td>
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Date and Time</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Pet</th>
+              {user?.role === 'Admin' && (
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Client</th>
+              )}
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Service</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Veterinarian</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Status</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {currentAppointments.length > 0 ? (
+              currentAppointments.map((appointment) => (
+                <tr key={appointment.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">
+                      {formatDate(appointment.appointmentDate)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{appointment.pet.name}</div>
+                  </td>
+                  {user?.role === 'Admin' && (
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(appointment.status)}`}>
-                        {appointment.status}
-                      </span>
+                      <div className="text-sm text-gray-900">{appointment.user.name}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button 
+                  )}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">{appointment.service.title}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {appointment.veterinarian ? appointment.veterinarian.name : 'No assigned'}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(appointment.status)}`}>
+                      {appointment.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-4">
+                      <button
                         onClick={() => handleViewAppointment(appointment)}
-                        className="text-blue-600 hover:text-blue-900 mr-4"
+                        className="text-emerald-600 hover:text-emerald-700 transition-colors"
+                        title="View Details"
                       >
-                        <FaEye />
+                        <FaEye size={18} />
                       </button>
                       {(user?.role === 'Admin' || appointment.status === 'Pending') && (
                         <>
-                          <button 
+                          <button
                             onClick={() => handleEditAppointment(appointment)}
-                            className="text-yellow-600 hover:text-yellow-900 mr-4"
+                            className="text-amber-600 hover:text-amber-700 transition-colors"
+                            title="Edit Appointment"
                           >
-                            <FaEdit />
+                            <FaEdit size={18} />
                           </button>
-                          <button 
+                          <button
                             onClick={() => {
                               setSelectedAppointment(appointment);
                               setShowDeleteConfirm(true);
                             }}
-                            className="text-red-600 hover:text-red-900"
+                            className="text-rose-500 hover:text-rose-600 transition-colors"
+                            title="Delete Appointment"
                           >
-                            <FaTimes />
+                            <FaTrash size={18} />
                           </button>
                         </>
                       )}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="px-6 py-4 text-center text-sm text-gray-500">
-                    No appointments found.
+                    </div>
                   </td>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={7} className="px-6 py-4 text-center text-sm font-medium text-gray-900">
+                  {searchTerm ? 'No appointments found matching your search' : 'No appointments registered'}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {filteredAppointments.length > 0 && (
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-sm text-gray-700">
+            Showing {indexOfFirstAppointment + 1} to {Math.min(indexOfLastAppointment, filteredAppointments.length)} of {filteredAppointments.length} appointments
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className={`p-2 rounded-md ${
+                currentPage === 1
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <FaChevronLeft />
+            </button>
+            <span className="text-sm text-gray-700">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className={`p-2 rounded-md ${
+                currentPage === totalPages
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <FaChevronRight />
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Details Modal */}
+      {/* Appointment Details Modal */}
       {selectedAppointment && showDetailsModal && (
         <AppointmentDetailsModal
           appointment={selectedAppointment}
@@ -280,12 +433,10 @@ export default function AppointmentsPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              {user?.role === 'Admin' ? 'Confirm Deletion' : 'Confirm Cancellation'}
+              Confirm Delete
             </h3>
             <p className="text-gray-600 mb-6">
-              {user?.role === 'Admin' 
-                ? 'Are you sure you want to delete this appointment? This action cannot be undone.'
-                : 'Are you sure you want to cancel this appointment? This action cannot be undone.'}
+              Are you sure you want to delete this appointment? This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-4">
               <button
@@ -298,48 +449,12 @@ export default function AppointmentsPage() {
                 onClick={() => handleDeleteAppointment(selectedAppointment)}
                 className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600"
               >
-                {user?.role === 'Admin' ? 'Delete' : 'Cancel Appointment'}
+                Delete
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Pagination */}
-      {appointments.length > 0 && (
-        <div className="mt-4 flex items-center justify-between">
-          <div className="text-sm text-gray-700">
-            Mostrando {indexOfFirstAppointment + 1} a {Math.min(indexOfLastAppointment, appointments.length)} de {appointments.length} citas
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className={`p-2 rounded-md ${
-                currentPage === 1
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <FaChevronLeft />
-            </button>
-            <span className="text-sm text-gray-700">
-              Página {currentPage} de {totalPages}
-            </span>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className={`p-2 rounded-md ${
-                currentPage === totalPages
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <FaChevronRight />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
-} 
+}

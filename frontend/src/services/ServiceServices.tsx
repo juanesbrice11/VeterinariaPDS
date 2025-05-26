@@ -123,7 +123,7 @@ export const deleteService = async (
 
     try {
         const response = await createAuthenticatedRequest(
-            `${API_URL}/services/${serviceId}`,
+            `${API_URL}/services/admin/${serviceId}`,
             'DELETE',
             token
         );

@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Button from '../atoms/Button';
+import { useRouter } from 'next/navigation';
 
 interface ServiceCardProps {
   icon: string;
@@ -23,6 +24,12 @@ export default function ServicePriceCard({
   iconBgColor = 'bg-yellow-200',
   isSelected = false,
 }: ServiceCardProps) {
+  const router = useRouter();
+
+  const handleBookNow = () => {
+    router.push('/appointments');
+  };
+
   return (
     <div
       className={`flex flex-col items-center text-center p-6 rounded-3xl shadow-md ${bgColor} w-64 h-auto font-instrument-sans relative border ${
@@ -41,7 +48,7 @@ export default function ServicePriceCard({
 
       <div className="text-lg font-bold text-[#150B33] mb-4">{price}</div>
 
-      <Button variant="primary">
+      <Button variant="primary" onClick={handleBookNow}>
         Book Now
       </Button>
     </div>

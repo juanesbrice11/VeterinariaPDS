@@ -115,3 +115,22 @@ export const deactivateService = async (req: Request, res: Response): Promise<vo
         res.status(500).json({ message: 'Error del servidor' });
     }
 };
+
+export const deleteService = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const serviceRepo = AppDataSource.getRepository(Service);
+        const service = await serviceRepo.findOne({ where: { id: parseInt(id) } });
+
+        if (!service) {
+            res.status(404).json({ message: 'Servicio no encontrado' });
+            return;
+        }
+
+        await serviceRepo.remove(service);
+        res.status(200).json({ message: 'Servicio eliminado permanentemente' });
+    } catch (error) {
+        console.error('Error al eliminar servicio:', error);
+        res.status(500).json({ message: 'Error del servidor' });
+    }
+};
