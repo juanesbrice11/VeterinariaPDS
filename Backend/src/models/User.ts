@@ -9,6 +9,13 @@ import {
 } from "typeorm";
 import { Pet } from "./pet";
 
+export enum UserRole {
+    ADMIN = "Admin",
+    VETERINARIO = "Veterinario",
+    CLIENT = "Client",
+    GUEST = "Guest"
+}
+
 @Entity('users')
 export class User extends BaseEntity {
     @PrimaryGeneratedColumn()
@@ -32,8 +39,12 @@ export class User extends BaseEntity {
     @Column({ default: "Active" })
     status: string;
 
-    @Column({ default: "Guest" })
-    role: string;
+    @Column({
+        type: "enum",
+        enum: UserRole,
+        default: UserRole.GUEST
+    })
+    role: UserRole;
 
     @Column({ nullable: true })
     phone: string;

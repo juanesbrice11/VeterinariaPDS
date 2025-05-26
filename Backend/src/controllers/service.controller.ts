@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/ormconfig';
 import { Service } from '../models/Service';
+import { Appointment } from '../models/appointment'
 
 export const createService = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -120,10 +121,24 @@ export const deleteService = async (req: Request, res: Response): Promise<void> 
     try {
         const { id } = req.params;
         const serviceRepo = AppDataSource.getRepository(Service);
+        const appointmentRepo = AppDataSource.getRepository(Appointment);
+        
         const service = await serviceRepo.findOne({ where: { id: parseInt(id) } });
 
         if (!service) {
             res.status(404).json({ message: 'Servicio no encontrado' });
+            return;
+        }
+
+        // Check if there are any appointments associated with this service
+        const appointmentsCount = await appointmentRepo.count({
+            where: { service: { id: parseInt(id) } }
+        });
+
+        if (appointmentsCount > 0) {
+            res.status(400).json({ 
+                message: 'No se puede eliminar el servicio porque tiene citas asociadas. Por favor, elimine o reasigne las citas primero.'
+            });
             return;
         }
 

@@ -69,11 +69,44 @@ export const createPetSecretary = async (req: AuthenticatedRequest, res: Respons
 export const getMyPets = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const petRepo = AppDataSource.getRepository(Pet);
-        const pets = await petRepo.find({ where: { ownerId: req.user?.id } });
-        res.status(200).json(pets);
+        const pets = await petRepo.find({ 
+            where: { ownerId: req.user?.id },
+            relations: {
+                owner: true
+            }
+        });
+
+        // Transformamos los datos para asegurar el formato correcto
+        const formattedPets = pets.map(pet => ({
+            id: pet.id,
+            name: pet.name,
+            species: pet.species,
+            breed: pet.breed,
+            color: pet.color,
+            birthDate: pet.birthDate,
+            gender: pet.gender,
+            weight: pet.weight,
+            createdAt: pet.createdAt,
+            updatedAt: pet.updatedAt,
+            owner: pet.owner ? {
+                id: pet.owner.id,
+                name: pet.owner.name,
+                email: pet.owner.email,
+                phone: pet.owner.phone
+            } : null
+        }));
+
+        res.status(200).json({
+            success: true,
+            pets: formattedPets
+        });
     } catch (error) {
         console.error('Error en getMyPets:', error);
-        res.status(500).json({ message: 'Error al obtener las mascotas' });
+        res.status(500).json({ 
+            success: false,
+            message: 'Error al obtener las mascotas',
+            error: error instanceof Error ? error.message : 'Error desconocido'
+        });
     }
 };
 
@@ -204,7 +237,7 @@ export const getAllPets = async (req: AuthenticatedRequest, res: Response): Prom
 export const getAllPetsV2 = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         // Verificar que el usuario tenga el rol correcto
-        if (!req.user || (req.user.role !== 'Admin' && req.user.role !== 'Secretary')) {
+        if (!req.user || (req.user.role !== 'Admin' && req.user.role !== 'Veterinario')) {
             res.status(403).json({
                 success: false,
                 message: 'No tienes permiso para acceder a esta información'
@@ -310,11 +343,11 @@ export const deletePetAdmin = async (req: AuthenticatedRequest, res: Response): 
     }
 };
 
-// Actualizar mascota (solo para Admin o Secretary)
+// Actualizar mascota (solo para Admin, Secretary o Veterinario)
 export const updatePetAdmin = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         // Verificar que el usuario tenga el rol correcto
-        if (!req.user || (req.user.role !== 'Admin' && req.user.role !== 'Secretary')) {
+        if (!req.user || (req.user.role !== 'Admin' && req.user.role !== 'Secretary' && req.user.role !== 'Veterinario')) {
             res.status(403).json({ 
                 success: false,
                 message: 'No tienes permiso para realizar esta acción' 
@@ -346,6 +379,60 @@ export const updatePetAdmin = async (req: AuthenticatedRequest, res: Response): 
         res.status(500).json({ 
             success: false,
             message: 'Error al actualizar la mascota',
+            error: error instanceof Error ? error.message : 'Error desconocido'
+        });
+    }
+};
+
+// Obtener todas las mascotas para veterinarios
+export const getAllPetsVet = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        // Verificar que el usuario sea veterinario
+        if (!req.user || req.user.role !== 'Veterinario') {
+            res.status(403).json({
+                success: false,
+                message: 'No tienes permiso para acceder a esta información'
+            });
+            return;
+        }
+
+        const petRepo = AppDataSource.getRepository(Pet);
+        
+        // Obtener todas las mascotas con la relación owner
+        const pets = await petRepo
+            .createQueryBuilder("pet")
+            .leftJoinAndSelect("pet.owner", "owner")
+            .getMany();
+
+        // Formatear la respuesta
+        const formattedPets = pets.map(pet => ({
+            id: pet.id,
+            name: pet.name,
+            species: pet.species,
+            breed: pet.breed || '',
+            color: pet.color || '',
+            birthDate: pet.birthDate,
+            gender: pet.gender,
+            weight: pet.weight,
+            createdAt: pet.createdAt,
+            updatedAt: pet.updatedAt,
+            owner: pet.owner ? {
+                id: pet.owner.id,
+                name: pet.owner.name,
+                email: pet.owner.email,
+                phone: pet.owner.phone
+            } : null
+        }));
+
+        res.status(200).json({
+            success: true,
+            pets: formattedPets
+        });
+    } catch (error) {
+        console.error('Error en getAllPetsVet:', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Error al obtener las mascotas',
             error: error instanceof Error ? error.message : 'Error desconocido'
         });
     }

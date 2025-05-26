@@ -9,7 +9,11 @@ export default function Profile() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {user?.role === "Admin" ? <AdminProfile /> : <UserProfile />}
+      {user?.role === "Admin" ? (
+        <AdminProfile />
+      ) : (
+        <UserProfile />
+      )}
     </div>
   );
 }
