@@ -7,7 +7,7 @@ import { getPets, updatePetAdmin, deletePet, deletePetAdmin } from '@/services/P
 import { Pet } from '@/types/schemas';
 import PetDetailsModal from '@/components/molecules/PetDetailsModal';
 import EditPetModal from '@/components/molecules/EditPetModal';
-import { FaEye, FaEdit, FaTrash, FaSearch } from 'react-icons/fa';
+import { FaEye, FaEdit, FaTrash, FaSearch, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 export default function PetsPage() {
     const [pets, setPets] = useState<Pet[]>([]);
@@ -19,35 +19,37 @@ export default function PetsPage() {
     const [editingPet, setEditingPet] = useState<Pet | null>(null);
     const { user } = useAuth();
     const router = useRouter();
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
+
+    const fetchPets = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const token = localStorage.getItem('token');
+            if (!token) {
+                throw new Error('No authentication token found');
+            }
+            console.log('Fetching pets...');
+            const response = await getPets(token);
+            console.log('Pets response:', response);
+            
+            if (response.success && response.pets) {
+                console.log('Setting pets:', response.pets);
+                setPets(response.pets);
+                setFilteredPets(response.pets);
+            } else {
+                throw new Error(response.message || 'Error fetching pets');
+            }
+        } catch (err) {
+            console.error('Error fetching pets:', err);
+            setError(err instanceof Error ? err.message : 'Error connecting to the server');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchPets = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    throw new Error('No authentication token found');
-                }
-                console.log('Fetching pets...');
-                const response = await getPets(token);
-                console.log('Pets response:', response);
-                
-                if (response.success && response.pets) {
-                    console.log('Setting pets:', response.pets);
-                    setPets(response.pets);
-                    setFilteredPets(response.pets);
-                } else {
-                    throw new Error(response.message || 'Error fetching pets');
-                }
-            } catch (err) {
-                console.error('Error fetching pets:', err);
-                setError(err instanceof Error ? err.message : 'Error connecting to the server');
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchPets();
     }, []);
 
@@ -55,35 +57,24 @@ export default function PetsPage() {
         setEditingPet(pet);
     };
 
-    const handleDelete = async (petId: number) => {
-        if (window.confirm('Are you sure you want to delete this pet?')) {
-            try {
-                const token = localStorage.getItem('token');
-                if (!token) {
-                    throw new Error('No authentication token found');
-                }
-
-                // Check if user is admin or secretary
-                if (user?.role === 'Admin' || user?.role === 'Secretary') {
-                    const response = await deletePetAdmin(petId.toString(), token);
-                    if (response.success) {
-                        setPets(pets.filter(pet => pet.id !== petId));
-                    } else {
-                        throw new Error(response.message || 'Error deleting pet');
-                    }
-                } else {
-                    // Use regular delete for normal users
-                    const response = await deletePet(petId.toString(), token);
-                    if (response.success) {
-                        setPets(pets.filter(pet => pet.id !== petId));
-                    } else {
-                        throw new Error(response.message || 'Error deleting pet');
-                    }
-                }
-            } catch (err) {
-                console.error('Error deleting pet:', err);
-                setError(err instanceof Error ? err.message : 'Error deleting pet');
+    const handleDelete = async (id: number) => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                throw new Error('No authentication token found');
             }
+
+            const response = await deletePetAdmin(id.toString(), token);
+            
+            if (response.success) {
+                // Actualizar la lista de mascotas después de eliminar
+                await fetchPets();
+            } else {
+                throw new Error(response.message || 'Error al eliminar la mascota');
+            }
+        } catch (err) {
+            console.error('Error deleting pet:', err);
+            setError(err instanceof Error ? err.message : 'Error al eliminar la mascota');
         }
     };
 
@@ -113,6 +104,7 @@ export default function PetsPage() {
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setSearchTerm(value);
+        setCurrentPage(1); // Reset to first page on search
         
         if (!value.trim()) {
             setFilteredPets(pets);
@@ -124,6 +116,18 @@ export default function PetsPage() {
             pet.name.toLowerCase().includes(value.toLowerCase())
         );
         setFilteredPets(filtered);
+    };
+
+    // Pagination logic
+    const indexOfLastPet = currentPage * itemsPerPage;
+    const indexOfFirstPet = indexOfLastPet - itemsPerPage;
+    const currentPets = filteredPets.slice(indexOfFirstPet, indexOfLastPet);
+    const totalPages = Math.ceil(filteredPets.length / itemsPerPage);
+
+    const handlePageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+        }
     };
 
     if (error) {
@@ -178,8 +182,8 @@ export default function PetsPage() {
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {filteredPets.length > 0 ? (
-                                filteredPets.map((pet) => (
+                            {currentPets.length > 0 ? (
+                                currentPets.map((pet) => (
                                     <tr key={pet.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{pet.id}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{pet.name}</td>
@@ -222,6 +226,42 @@ export default function PetsPage() {
                             )}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {/* Pagination */}
+            {filteredPets.length > 0 && (
+                <div className="mt-4 flex items-center justify-between">
+                    <div className="text-sm text-gray-700">
+                        Mostrando {indexOfFirstPet + 1} a {Math.min(indexOfLastPet, filteredPets.length)} de {filteredPets.length} mascotas
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <button
+                            onClick={() => handlePageChange(currentPage - 1)}
+                            disabled={currentPage === 1}
+                            className={`p-2 rounded-md ${
+                                currentPage === 1
+                                    ? 'text-gray-400 cursor-not-allowed'
+                                    : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                        >
+                            <FaChevronLeft />
+                        </button>
+                        <span className="text-sm text-gray-700">
+                            Página {currentPage} de {totalPages}
+                        </span>
+                        <button
+                            onClick={() => handlePageChange(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                            className={`p-2 rounded-md ${
+                                currentPage === totalPages
+                                    ? 'text-gray-400 cursor-not-allowed'
+                                    : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                        >
+                            <FaChevronRight />
+                        </button>
+                    </div>
                 </div>
             )}
 

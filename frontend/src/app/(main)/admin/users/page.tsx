@@ -3,44 +3,48 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { withAuth } from '@/components/hoc/withAuth';
-import { getUsers, deleteUser, updateUser2 } from '@/services/UserServices';
+import { getUsers, updateUser2, deleteUser, GetUsers } from '@/services/UserServices';
 import { FaSearch, FaTrash, FaEye, FaEdit, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
-function UsersPage() {
-    const [users, setUsers] = useState<any[]>([]);
-    const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
+function AdminUsersPage() {
+    const [users, setUsers] = useState<GetUsers[]>([]);
+    const [filteredUsers, setFilteredUsers] = useState<GetUsers[]>([]);
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedUser, setSelectedUser] = useState<GetUsers | null>(null);
+    const [editingUser, setEditingUser] = useState<GetUsers | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
-    const [totalUsers, setTotalUsers] = useState(0);
-    const [selectedUser, setSelectedUser] = useState<any>(null);
-    const [editingUser, setEditingUser] = useState<any>(null);
-    const { isAuthenticated } = useAuth();
     const itemsPerPage = 5;
+    const { isAuthenticated } = useAuth();
 
     const fetchUsers = async () => {
         if (!isAuthenticated) return;
 
         setLoading(true);
+        setError(null);
         try {
             const token = localStorage.getItem('token');
-            if (!token) return;
+            if (!token) {
+                setError('No hay sesión activa');
+                return;
+            }
 
-            const response = await getUsers(token, currentPage);
+            const response = await getUsers(token);
             console.log('Users response:', response);
 
-            if (response.users) {
+            if (response.success && response.users) {
                 setUsers(response.users);
                 setFilteredUsers(response.users);
-                setTotalUsers(response.total);
             } else {
-                setError(response.message || 'Error al cargar los usuarios');
+                const errorMessage = response.message || 'Error al cargar los usuarios';
+                console.error('Error loading users:', errorMessage);
+                setError(errorMessage);
             }
         } catch (err) {
             console.error("Failed to load users:", err);
-            setError('Error al cargar los usuarios');
+            setError('Error al cargar los usuarios. Por favor, intente nuevamente.');
         } finally {
             setLoading(false);
         }
@@ -48,7 +52,45 @@ function UsersPage() {
 
     useEffect(() => {
         fetchUsers();
-    }, [isAuthenticated, currentPage]);
+    }, [isAuthenticated]);
+
+    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setSearchTerm(value);
+        setCurrentPage(1); // Resetear a la primera página al buscar
+        
+        if (!value.trim()) {
+            setFilteredUsers(users);
+            return;
+        }
+
+        const filtered = users.filter(user => 
+            user.name.toLowerCase().includes(value.toLowerCase()) ||
+            user.email.toLowerCase().includes(value.toLowerCase()) ||
+            user.cc.toString().includes(value)
+        );
+        setFilteredUsers(filtered);
+    };
+
+    // Calcular los usuarios para la página actual
+    const indexOfLastUser = currentPage * itemsPerPage;
+    const indexOfFirstUser = indexOfLastUser - itemsPerPage;
+    const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+
+    const handlePageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalPages) {
+            setCurrentPage(newPage);
+        }
+    };
+
+    const handleView = (user: GetUsers) => {
+        setSelectedUser(user);
+    };
+
+    const handleEdit = (user: GetUsers) => {
+        setEditingUser(user);
+    };
 
     const handleDelete = async (userId: number) => {
         if (!window.confirm('¿Estás seguro de que deseas eliminar este usuario?')) {
@@ -85,85 +127,29 @@ function UsersPage() {
             }
 
             const userData = {
-                id: userId,
-                cc: user.documentNumber,
+                id: user.id,
+                cc: user.cc,
                 name: user.name,
                 email: user.email,
-                phone: user.phone || '',
-                birthDate: user.birthDate || '',
-                gender: user.gender || '',
-                address: user.address || '',
-                status: user.status || 'Active',
+                phone: user.phone,
+                birthDate: user.birthDate,
+                gender: user.gender,
+                address: user.address,
+                status: user.status,
                 role: newRole
             };
 
             const response = await updateUser2(userData, token);
             
             if (response.success) {
-                toast.success('Usuario actualizado correctamente');
+                toast.success('Rol actualizado correctamente');
                 await fetchUsers();
             } else {
-                toast.error(response.message || 'Error al actualizar el usuario');
+                toast.error(response.message || 'Error al actualizar el rol');
             }
         } catch (err) {
-            console.error('Error updating user:', err);
-            toast.error('Error al actualizar el usuario');
-        }
-    };
-
-    const handleUpdateUser = async (userData: any) => {
-        try {
-            const token = localStorage.getItem('token');
-            if (!token) return;
-
-            const response = await updateUser2(userData, token);
-            
-            if (response.success) {
-                toast.success('Usuario actualizado correctamente');
-                await fetchUsers();
-            } else {
-                toast.error(response.message || 'Error al actualizar el usuario');
-            }
-        } catch (err) {
-            console.error('Error updating user:', err);
-            toast.error('Error al actualizar el usuario');
-        }
-    };
-
-    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setSearchTerm(value);
-        setCurrentPage(1);
-        
-        if (!value.trim()) {
-            setFilteredUsers(users);
-            return;
-        }
-
-        const filtered = users.filter(user => 
-            user.name.toLowerCase().includes(value.toLowerCase()) ||
-            user.email.toLowerCase().includes(value.toLowerCase()) ||
-            user.documentNumber.includes(value)
-        );
-        setFilteredUsers(filtered);
-    };
-
-    const handleView = (user: any) => {
-        setSelectedUser(user);
-    };
-
-    const handleEdit = (user: any) => {
-        setEditingUser(user);
-    };
-
-    const indexOfLastUser = currentPage * itemsPerPage;
-    const indexOfFirstUser = indexOfLastUser - itemsPerPage;
-    const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
-    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-
-    const handlePageChange = (newPage: number) => {
-        if (newPage >= 1 && newPage <= totalPages) {
-            setCurrentPage(newPage);
+            console.error('Error updating role:', err);
+            toast.error('Error al actualizar el rol');
         }
     };
 
@@ -197,18 +183,20 @@ function UsersPage() {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold text-gray-700">Gestión de Usuarios</h1>
                 
-                {/* Search Input */}
-                <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <FaSearch className="h-5 w-5 text-gray-400" />
+                <div className="flex items-center space-x-4">
+                    {/* Search Input */}
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <FaSearch className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={handleSearch}
+                            placeholder="Buscar por nombre, email o documento..."
+                            className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-64 text-gray-900 placeholder-gray-500"
+                        />
                     </div>
-                    <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={handleSearch}
-                        placeholder="Buscar por nombre, email o documento..."
-                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-64 text-gray-900 placeholder-gray-500"
-                    />
                 </div>
             </div>
 
@@ -220,7 +208,6 @@ function UsersPage() {
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Email</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Documento</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Rol</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Estado</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
@@ -235,28 +222,19 @@ function UsersPage() {
                                         <div className="text-sm text-gray-900">{user.email}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm text-gray-900">{user.documentNumber}</div>
+                                        <div className="text-sm text-gray-900">{user.cc}</div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <select
                                             value={user.role}
                                             onChange={(e) => handleRoleUpdate(user.id, e.target.value)}
-                                            className="text-sm text-gray-900 border rounded px-2 py-1"
+                                            className="text-sm text-gray-900 border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500"
                                         >
                                             <option value="Guest">Invitado</option>
                                             <option value="Client">Cliente</option>
                                             <option value="Veterinario">Veterinario</option>
                                             <option value="Admin">Administrador</option>
                                         </select>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                            user.status === 'Active' 
-                                                ? 'bg-green-100 text-green-800' 
-                                                : 'bg-red-100 text-red-800'
-                                        }`}>
-                                            {user.status}
-                                        </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex space-x-4">
@@ -287,7 +265,7 @@ function UsersPage() {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={6} className="px-6 py-4 text-center text-sm font-medium text-gray-900">
+                                <td colSpan={5} className="px-6 py-4 text-center text-sm font-medium text-gray-900">
                                     {searchTerm ? 'No se encontraron usuarios que coincidan con la búsqueda' : 'No hay usuarios registrados'}
                                 </td>
                             </tr>
@@ -348,15 +326,11 @@ function UsersPage() {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Documento</label>
-                                <p className="mt-1 text-sm text-gray-900">{selectedUser.documentNumber}</p>
+                                <p className="mt-1 text-sm text-gray-900">{selectedUser.cc}</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Rol</label>
                                 <p className="mt-1 text-sm text-gray-900">{selectedUser.role}</p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Estado</label>
-                                <p className="mt-1 text-sm text-gray-900">{selectedUser.status}</p>
                             </div>
                         </div>
                         <div className="mt-6 flex justify-end">
@@ -396,6 +370,15 @@ function UsersPage() {
                                 />
                             </div>
                             <div>
+                                <label className="block text-sm font-medium text-gray-700">Documento</label>
+                                <input
+                                    type="text"
+                                    value={editingUser.cc}
+                                    onChange={(e) => setEditingUser({...editingUser, cc: parseInt(e.target.value)})}
+                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 text-gray-900"
+                                />
+                            </div>
+                            <div>
                                 <label className="block text-sm font-medium text-gray-700">Rol</label>
                                 <select
                                     value={editingUser.role}
@@ -417,10 +400,7 @@ function UsersPage() {
                                 Cancelar
                             </button>
                             <button
-                                onClick={() => {
-                                    handleUpdateUser(editingUser);
-                                    setEditingUser(null);
-                                }}
+                                onClick={() => handleRoleUpdate(editingUser.id, editingUser.role)}
                                 className="px-4 py-2 text-sm font-medium text-white bg-orange-500 rounded-md hover:bg-orange-600"
                             >
                                 Guardar
@@ -433,4 +413,4 @@ function UsersPage() {
     );
 }
 
-export default withAuth(UsersPage); 
+export default withAuth(AdminUsersPage); 

@@ -22,11 +22,30 @@ export const createService = async (req: Request, res: Response): Promise<void> 
     }
 };
 
-export const getAllServices = async (_req: Request, res: Response): Promise<void> => {
+export const getAllServices = async (req: Request, res: Response): Promise<void> => {
     try {
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const skip = (page - 1) * limit;
+
         const serviceRepo = AppDataSource.getRepository(Service);
-        const services = await serviceRepo.find();
-        res.status(200).json(services);
+        const [services, total] = await serviceRepo.findAndCount({
+            skip,
+            take: limit,
+            order: {
+                createdAt: 'DESC'
+            }
+        });
+
+        res.status(200).json({
+            data: services,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
     } catch (error) {
         console.error('Error al obtener servicios:', error);
         res.status(500).json({ message: 'Error del servidor' });
