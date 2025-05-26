@@ -18,11 +18,11 @@ import { authorizeRoles } from '../middlewares/authorizeRoles';
 const router = Router();
 
 // Client routes
-router.post('/', authenticateToken, authorizeRoles('Client', 'Guest', 'Admin'), createAppointment);
+router.post('/', authenticateToken, authorizeRoles('Client', 'Guest', 'Admin', 'Secretary', 'Veterinario'), createAppointment);
 router.get('/', authenticateToken, getMyAppointments);
 router.get('/detailed', authenticateToken, getMyDetailedAppointments);
 router.get('/available-slots', getAvailableTimeSlots);
-router.patch('/:id/cancel', authenticateToken, authorizeRoles('Client', 'Guest', 'Admin'), cancelAppointment);
+router.patch('/:id/cancel', authenticateToken, authorizeRoles('Client', 'Guest', 'Admin', 'Secretary', 'Veterinario'), cancelAppointment);
 router.patch('/:id/status', authenticateToken, authorizeRoles('Veterinario'), updateAppointmentStatus);
 
 // Admin routes

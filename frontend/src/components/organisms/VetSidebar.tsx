@@ -6,7 +6,8 @@ import { usePathname } from 'next/navigation';
 import { 
   FaUser, 
   FaPaw, 
-  FaCalendarAlt
+  FaCalendarAlt,
+  FaFileMedical 
 } from 'react-icons/fa';
 
 interface SidebarItem {
@@ -18,6 +19,7 @@ interface SidebarItem {
 const sidebarItems: SidebarItem[] = [
   { name: 'Profile', path: '/profile', icon: <FaUser className="w-5 h-5" /> },
   { name: 'Pets', path: '/profile/pets', icon: <FaPaw className="w-5 h-5" /> },
+  { name: 'Medical Records', path: '/profile/medical-records', icon: <FaFileMedical className="w-5 h-5" /> },
   { name: 'Appointments', path: '/profile/appointments', icon: <FaCalendarAlt className="w-5 h-5" /> },
 ];
 

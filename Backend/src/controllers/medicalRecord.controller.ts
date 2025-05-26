@@ -4,7 +4,41 @@ import { MedicalRecord } from '../models/medicalRecord';
 import { Pet } from '../models/pet';
 import { AuthenticatedRequest } from '../middlewares/authenticateToken';
 
-// Crear un registro médico (solo veterinario)
+// Obtener todos los registros médicos (veterinario o admin)
+export const getAllMedicalRecords = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        if (req.user?.role !== 'Veterinario' && req.user?.role !== 'Admin') {
+            res.status(403).json({ message: 'No tienes permiso para ver los registros médicos' });
+            return;
+        }
+
+        const medicalRecordRepo = AppDataSource.getRepository(MedicalRecord);
+        const records = await medicalRecordRepo.find({
+            relations: ['pet', 'veterinarian'],
+            order: {
+                date: 'DESC'
+            }
+        });
+
+        const formattedRecords = records.map(record => ({
+            id: record.id,
+            petId: record.petId,
+            petName: record.pet.name,
+            date: record.date,
+            description: record.description,
+            procedureType: record.procedureType,
+            veterinarianId: record.veterinarianId,
+            veterinarianName: `${record.veterinarian.name}`
+        }));
+
+        res.status(200).json(formattedRecords);
+    } catch (error) {
+        console.error('Error al obtener registros médicos:', error);
+        res.status(500).json({ message: 'Error del servidor' });
+    }
+};
+
+// Crear un registro médico (veterinario o admin)
 export const createMedicalRecord = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const { petId, date, description, procedureType } = req.body;
@@ -14,8 +48,8 @@ export const createMedicalRecord = async (req: AuthenticatedRequest, res: Respon
             return;
         }
 
-        if (req.user?.role !== 'Veterinario') {
-            res.status(403).json({ message: 'Solo los veterinarios pueden crear registros médicos' });
+        if (req.user?.role !== 'Veterinario' && req.user?.role !== 'Admin') {
+            res.status(403).json({ message: 'Solo los veterinarios y administradores pueden crear registros médicos' });
             return;
         }
 
@@ -42,7 +76,7 @@ export const createMedicalRecord = async (req: AuthenticatedRequest, res: Respon
     }
 };
 
-// Obtener registros médicos de una mascota (veterinario o dueño)
+// Obtener registros médicos de una mascota (veterinario, admin o dueño)
 export const getMedicalRecordsByPet = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const { petId } = req.params;
@@ -53,16 +87,88 @@ export const getMedicalRecordsByPet = async (req: AuthenticatedRequest, res: Res
         }
         const isOwner = pet.ownerId === req.user?.id;
         const isVet = req.user?.role === 'Veterinario';
-        if (!isOwner && !isVet) {
+        const isAdmin = req.user?.role === 'Admin';
+        if (!isOwner && !isVet && !isAdmin) {
             res.status(403).json({ message: 'No tienes permiso para ver el historial de esta mascota' });
             return;
         }
         const medicalRecordRepo = AppDataSource.getRepository(MedicalRecord);
-        const records = await medicalRecordRepo.find({ where: { petId: pet.id } });
+        const records = await medicalRecordRepo.find({ 
+            where: { petId: pet.id },
+            relations: ['pet', 'veterinarian']
+        });
 
-        res.status(200).json(records);
+        const formattedRecords = records.map(record => ({
+            id: record.id,
+            petId: record.petId,
+            petName: record.pet.name,
+            date: record.date,
+            description: record.description,
+            procedureType: record.procedureType,
+            veterinarianId: record.veterinarianId,
+            veterinarianName: `${record.veterinarian.name}`
+        }));
+
+        res.status(200).json(formattedRecords);
     } catch (error) {
         console.error('Error al obtener historial médico:', error);
+        res.status(500).json({ message: 'Error del servidor' });
+    }
+};
+
+// Actualizar un registro médico (veterinario o admin)
+export const updateMedicalRecord = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+        const { date, description, procedureType } = req.body;
+
+        if (req.user?.role !== 'Veterinario' && req.user?.role !== 'Admin') {
+            res.status(403).json({ message: 'Solo los veterinarios y administradores pueden actualizar registros médicos' });
+            return;
+        }
+
+        const medicalRecordRepo = AppDataSource.getRepository(MedicalRecord);
+        const record = await medicalRecordRepo.findOne({ where: { id: parseInt(id) } });
+
+        if (!record) {
+            res.status(404).json({ message: 'Registro médico no encontrado' });
+            return;
+        }
+
+        record.date = date || record.date;
+        record.description = description || record.description;
+        record.procedureType = procedureType || record.procedureType;
+
+        await medicalRecordRepo.save(record);
+        res.status(200).json({ message: 'Registro médico actualizado exitosamente', record });
+    } catch (error) {
+        console.error('Error al actualizar registro médico:', error);
+        res.status(500).json({ message: 'Error del servidor' });
+    }
+};
+
+// Eliminar un registro médico (veterinario o admin)
+export const deleteMedicalRecord = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    try {
+        const { id } = req.params;
+
+        if (req.user?.role !== 'Veterinario' && req.user?.role !== 'Admin') {
+            res.status(403).json({ message: 'Solo los veterinarios y administradores pueden eliminar registros médicos' });
+            return;
+        }
+
+        const medicalRecordRepo = AppDataSource.getRepository(MedicalRecord);
+        const record = await medicalRecordRepo.findOne({ where: { id: parseInt(id) } });
+
+        if (!record) {
+            res.status(404).json({ message: 'Registro médico no encontrado' });
+            return;
+        }
+
+        await medicalRecordRepo.remove(record);
+        res.status(200).json({ message: 'Registro médico eliminado exitosamente' });
+    } catch (error) {
+        console.error('Error al eliminar registro médico:', error);
         res.status(500).json({ message: 'Error del servidor' });
     }
 };
