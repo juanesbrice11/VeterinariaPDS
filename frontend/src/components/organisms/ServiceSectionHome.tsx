@@ -4,9 +4,15 @@ import ServiceCard from '../molecules/ServiceCard';
 import { Dog, Cat, Scissors } from 'lucide-react';
 import Button from '../atoms/Button';
 import { services, Service } from '@/data/services';
+import { useRouter } from 'next/navigation';
 
 export default function ServicesSection() {
+  const router = useRouter();
   const homeServices = services.slice(0, 3); // Tomamos solo los primeros 3 servicios para la página de inicio
+
+  const handleMoreServicesClick = () => {
+    router.push('/services');
+  };
 
   return (
     <section className="text-center py-16 bg-transparent from-orange-50 to-white font-instrument-sans">
@@ -30,7 +36,10 @@ export default function ServicesSection() {
         ))}
       </div>
 
-      <Button variant="primary" >
+      <Button 
+        variant="primary"
+        onClick={handleMoreServicesClick}
+      >
         More Services
       </Button>
     </section>
