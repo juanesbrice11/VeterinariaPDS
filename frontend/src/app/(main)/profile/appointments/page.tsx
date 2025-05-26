@@ -37,7 +37,7 @@ export default function VetAppointments() {
         }
 
         console.log('Fetching appointments for role:', user?.role);
-        const response = user?.role === 'Admin' 
+        const response = user?.role === 'Admin' || user?.role === 'Veterinario'
           ? await getAllAppointments(token)
           : await getSpecifiedAppointments(token);
 
@@ -162,7 +162,7 @@ export default function VetAppointments() {
       const response = await updateAppointment(token, editingAppointment.id, appointmentData);
 
       if (response.success) {
-        setAppointments(appointments.map(appointment => 
+        const updatedAppointments = appointments.map(appointment => 
           appointment.id === editingAppointment.id 
             ? { 
                 ...appointment, 
@@ -170,7 +170,11 @@ export default function VetAppointments() {
                 appointmentDate: updatedAppointment.appointmentDate || appointment.appointmentDate
               }
             : appointment
-        ));
+        );
+        
+        setAppointments(updatedAppointments);
+        filterAppointments(updatedAppointments, dateFilter);
+        
         setEditingAppointment(null);
         toast.success('Appointment updated successfully');
       } else {
@@ -320,13 +324,15 @@ export default function VetAppointments() {
                       >
                         <FaEdit size={18} />
                       </button>
-                      <button
-                        onClick={() => handleDelete(appointment.id)}
-                        className="text-rose-500 hover:text-rose-600 transition-colors"
-                        title="Delete Appointment"
-                      >
-                        <FaTrash size={18} />
-                      </button>
+                      {user?.role === 'Admin' && (
+                        <button
+                          onClick={() => handleDelete(appointment.id)}
+                          className="text-rose-500 hover:text-rose-600 transition-colors"
+                          title="Delete Appointment"
+                        >
+                          <FaTrash size={18} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
