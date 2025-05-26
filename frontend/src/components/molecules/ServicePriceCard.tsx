@@ -3,6 +3,9 @@
 import React from 'react';
 import Image from 'next/image';
 import Button from '../atoms/Button';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
 
 interface ServiceCardProps {
   icon: string;
@@ -23,6 +26,21 @@ export default function ServicePriceCard({
   iconBgColor = 'bg-yellow-200',
   isSelected = false,
 }: ServiceCardProps) {
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  const handleBookNowClick = () => {
+    if (isAuthenticated) {
+      router.push('/schedule-appointment');
+    } else {
+      toast('Please log in to schedule your appointments', {
+        icon: '📅',
+        duration: 3000
+      });
+      router.push('/login');
+    }
+  };
+
   return (
     <div
       className={`flex flex-col items-center text-center p-6 rounded-3xl shadow-md ${bgColor} w-64 h-auto font-instrument-sans relative border ${
@@ -41,7 +59,7 @@ export default function ServicePriceCard({
 
       <div className="text-lg font-bold text-[#150B33] mb-4">{price}</div>
 
-      <Button variant="primary">
+      <Button variant="primary" onClick={handleBookNowClick}>
         Book Now
       </Button>
     </div>

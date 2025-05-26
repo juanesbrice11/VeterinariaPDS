@@ -2,8 +2,26 @@ import React from 'react'
 import Image from 'next/image'
 import Button from '../atoms/Button'
 import ServiceSectionHome from './ServiceSectionHome'
+import { useAuth } from '@/context/AuthContext'
+import { useRouter } from 'next/navigation'
+import { toast } from 'react-hot-toast'
 
 export default function MainHome() {
+    const { isAuthenticated } = useAuth();
+    const router = useRouter();
+
+    const handleBookNowClick = () => {
+        if (isAuthenticated) {
+            router.push('/schedule-appointment');
+        } else {
+            toast('Please log in to schedule your appointments', {
+                icon: '📅',
+                duration: 3000
+            });
+            router.push('/login');
+        }
+    };
+
     return (
         <div>
             <div className='flex flex-col md:flex-row items-center justify-center px-4 md:px-10 py-10 gap-10'>
@@ -21,7 +39,10 @@ export default function MainHome() {
                     </p>
 
                     <div className='flex justify-center md:justify-start'>
-                        <Button variant='primary'>
+                        <Button 
+                            variant='primary'
+                            onClick={handleBookNowClick}
+                        >
                             <p>Book Now</p>
                         </Button>
                     </div>
@@ -36,12 +57,9 @@ export default function MainHome() {
                         className='w-full max-w-md md:max-w-lg h-auto object-contain'
                     />
                 </div>
-
-
             </div>
 
             <ServiceSectionHome />
-
         </div>
     )
 }
