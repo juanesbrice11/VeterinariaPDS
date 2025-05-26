@@ -1,56 +1,184 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaCheck, FaTimes, FaEye, FaChevronLeft, FaChevronRight, FaSearch, FaPlus, FaTrash } from 'react-icons/fa';
+import { FaEdit, FaCheck, FaTimes, FaEye, FaChevronLeft, FaChevronRight, FaSearch, FaPlus, FaTrash, FaSort } from 'react-icons/fa';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { DetailedAppointment } from '@/types/schemas';
+import { DetailedAppointment, Appointment } from '@/types/schemas';
 import { getSpecifiedAppointments, getAllAppointments, cancelAppointment, deleteAppointment, updateAppointment } from '@/services/AppointmentServices';
 import AppointmentDetailsModal from '@/components/molecules/AppointmentDetailsModal';
 import EditAppointmentModal from '@/components/molecules/EditAppointmentModal';
 import { toast } from 'react-hot-toast';
 
-export default function AppointmentsPage() {
+type DateFilter = 'all' | 'today' | 'tomorrow' | 'next7days' | 'upcoming' | 'recent';
+
+export default function VetAppointments() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [appointments, setAppointments] = useState<DetailedAppointment[]>([]);
   const [filteredAppointments, setFilteredAppointments] = useState<DetailedAppointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedAppointment, setSelectedAppointment] = useState<DetailedAppointment | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState('all');
+  const [editingAppointment, setEditingAppointment] = useState<DetailedAppointment | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const itemsPerPage = 5;
-  const { user } = useAuth();
-  const router = useRouter();
 
   useEffect(() => {
-    if (!user) {
-      router.push('/login');
-      return;
-    }
-    fetchAppointments();
-  }, [user, router]);
+    const fetchAppointments = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
 
-  const fetchAppointments = async () => {
-    try {
-      setLoading(true);
-      const response = user?.role === 'Admin' 
-        ? await getAllAppointments(user?.token || '')
-        : await getSpecifiedAppointments(user?.token || '');
-      
-      if (response.success && response.data) {
-        setAppointments(response.data);
-        setFilteredAppointments(response.data);
-      } else {
-        toast.error(response.message || 'Error fetching appointments');
+        console.log('Fetching appointments for role:', user?.role);
+        const response = user?.role === 'Admin' 
+          ? await getAllAppointments(token)
+          : await getSpecifiedAppointments(token);
+
+        console.log('Appointments response:', response);
+
+        if (response.success && response.data) {
+          setAppointments(response.data);
+          filterAppointments(response.data, dateFilter);
+        } else {
+          throw new Error(response.message || 'Error fetching appointments');
+        }
+      } catch (err) {
+        console.error('Error fetching appointments:', err);
+        setError(err instanceof Error ? err.message : 'Error connecting to the server');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('Error in fetchAppointments:', error);
-      toast.error('Error fetching appointments');
-    } finally {
-      setLoading(false);
+    };
+
+    if (user) {
+      fetchAppointments();
+    }
+  }, [user]);
+
+  const filterAppointments = (appointmentsToFilter: DetailedAppointment[], filter: DateFilter) => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+
+    let filtered = [...appointmentsToFilter];
+
+    switch (filter) {
+      case 'today':
+        filtered = filtered.filter(appointment => {
+          const appointmentDate = new Date(appointment.appointmentDate);
+          return appointmentDate.toDateString() === today.toDateString();
+        });
+        break;
+      case 'tomorrow':
+        filtered = filtered.filter(appointment => {
+          const appointmentDate = new Date(appointment.appointmentDate);
+          return appointmentDate.toDateString() === tomorrow.toDateString();
+        });
+        break;
+      case 'next7days':
+        filtered = filtered.filter(appointment => {
+          const appointmentDate = new Date(appointment.appointmentDate);
+          return appointmentDate >= today && appointmentDate <= nextWeek;
+        });
+        break;
+      case 'upcoming':
+        filtered = filtered.filter(appointment => {
+          const appointmentDate = new Date(appointment.appointmentDate);
+          return appointmentDate >= today;
+        }).sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime());
+        break;
+      case 'recent':
+        filtered = filtered.sort((a, b) => new Date(b.appointmentDate).getTime() - new Date(a.appointmentDate).getTime());
+        break;
+      default:
+        // 'all' - no filtering needed
+        break;
+    }
+
+    setFilteredAppointments(filtered);
+  };
+
+  const handleDateFilterChange = (filter: DateFilter) => {
+    setDateFilter(filter);
+    filterAppointments(appointments, filter);
+    setCurrentPage(1);
+  };
+
+  const handleEdit = (appointment: DetailedAppointment) => {
+    setEditingAppointment(appointment);
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await deleteAppointment(token, id);
+      if (response.success) {
+        setAppointments(appointments.filter(appointment => appointment.id !== id));
+        toast.success('Appointment deleted successfully');
+      } else {
+        throw new Error(response.message || 'Error deleting appointment');
+      }
+    } catch (err) {
+      console.error('Error deleting appointment:', err);
+      toast.error(err instanceof Error ? err.message : 'Error deleting appointment');
+    }
+  };
+
+  const handleSaveEdit = async (updatedAppointment: Partial<DetailedAppointment>) => {
+    try {
+      if (!editingAppointment?.id) {
+        throw new Error('Invalid appointment ID');
+      }
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const appointmentData: Partial<Appointment> = {
+        status: updatedAppointment.status,
+        appointmentDate: updatedAppointment.appointmentDate
+      };
+
+      console.log('Updating appointment:', {
+        id: editingAppointment.id,
+        data: appointmentData
+      });
+
+      const response = await updateAppointment(token, editingAppointment.id, appointmentData);
+
+      if (response.success) {
+        setAppointments(appointments.map(appointment => 
+          appointment.id === editingAppointment.id 
+            ? { 
+                ...appointment, 
+                status: updatedAppointment.status || appointment.status,
+                appointmentDate: updatedAppointment.appointmentDate || appointment.appointmentDate
+              }
+            : appointment
+        ));
+        setEditingAppointment(null);
+        toast.success('Appointment updated successfully');
+      } else {
+        throw new Error(response.message || 'Error updating appointment');
+      }
+    } catch (err) {
+      console.error('Error updating appointment:', err);
+      toast.error(err instanceof Error ? err.message : 'Error updating appointment');
     }
   };
 
@@ -58,159 +186,18 @@ export default function AppointmentsPage() {
     const value = e.target.value;
     setSearchTerm(value);
     setCurrentPage(1);
-    
-    filterAppointments(value, dateFilter);
   };
 
-  const handleDateFilter = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const filter = e.target.value;
-    setDateFilter(filter);
-    setCurrentPage(1);
-    
-    filterAppointments(searchTerm, filter);
-  };
+  const searchFilteredAppointments = filteredAppointments.filter(appointment => 
+    appointment.pet.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    appointment.service.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    appointment.status.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const filterAppointments = (search: string, dateFilter: string) => {
-    let filtered = appointments;
-
-    // Filter by search term
-    if (search.trim()) {
-      filtered = filtered.filter(appointment => 
-        appointment.pet.name.toLowerCase().includes(search.toLowerCase()) ||
-        appointment.service.title.toLowerCase().includes(search.toLowerCase()) ||
-        appointment.user.name.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-
-    // Filter by date
-    const now = new Date();
-    switch (dateFilter) {
-      case 'today':
-        filtered = filtered.filter(appointment => {
-          const appointmentDate = new Date(appointment.appointmentDate);
-          return appointmentDate.toDateString() === now.toDateString();
-        });
-        break;
-      case 'tomorrow':
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        filtered = filtered.filter(appointment => {
-          const appointmentDate = new Date(appointment.appointmentDate);
-          return appointmentDate.toDateString() === tomorrow.toDateString();
-        });
-        break;
-      case 'week':
-        const weekEnd = new Date(now);
-        weekEnd.setDate(weekEnd.getDate() + 7);
-        filtered = filtered.filter(appointment => {
-          const appointmentDate = new Date(appointment.appointmentDate);
-          return appointmentDate >= now && appointmentDate <= weekEnd;
-        });
-        break;
-      case 'month':
-        const monthEnd = new Date(now);
-        monthEnd.setMonth(monthEnd.getMonth() + 1);
-        filtered = filtered.filter(appointment => {
-          const appointmentDate = new Date(appointment.appointmentDate);
-          return appointmentDate >= now && appointmentDate <= monthEnd;
-        });
-        break;
-      case 'past':
-        filtered = filtered.filter(appointment => {
-          const appointmentDate = new Date(appointment.appointmentDate);
-          return appointmentDate < now;
-        });
-        break;
-      case 'upcoming':
-        filtered = filtered.filter(appointment => {
-          const appointmentDate = new Date(appointment.appointmentDate);
-          return appointmentDate > now;
-        });
-        break;
-    }
-
-    setFilteredAppointments(filtered);
-  };
-
-  const handleViewAppointment = (appointment: DetailedAppointment) => {
-    setSelectedAppointment(appointment);
-    setShowDetailsModal(true);
-  };
-
-  const handleEditAppointment = (appointment: DetailedAppointment) => {
-    setSelectedAppointment(appointment);
-    setShowEditModal(true);
-  };
-
-  const handleDeleteAppointment = async (appointment: DetailedAppointment) => {
-    try {
-      const response = user?.role === 'Admin'
-        ? await deleteAppointment(user?.token || '', appointment.id)
-        : await cancelAppointment(user?.token || '', appointment.id);
-
-      if (response.success) {
-        toast.success(user?.role === 'Admin' ? 'Appointment deleted successfully' : 'Appointment cancelled successfully');
-        fetchAppointments();
-      } else {
-        toast.error(response.message || `Error ${user?.role === 'Admin' ? 'deleting' : 'cancelling'} appointment`);
-      }
-    } catch (error) {
-      toast.error(`Error ${user?.role === 'Admin' ? 'deleting' : 'cancelling'} appointment`);
-    }
-    setShowDeleteConfirm(false);
-  };
-
-  const handleUpdateAppointment = async (updatedAppointment: Partial<DetailedAppointment>) => {
-    if (!selectedAppointment || !user?.token) return;
-
-    try {
-      const response = await updateAppointment(
-        user.token,
-        selectedAppointment.id,
-        updatedAppointment
-      );
-
-      if (response.success) {
-        toast.success('Appointment updated successfully');
-        fetchAppointments();
-        setShowEditModal(false);
-      } else {
-        toast.error(response.message || 'Error updating appointment');
-      }
-    } catch (error) {
-      console.error('Error updating appointment:', error);
-      toast.error('Error updating appointment');
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      case 'confirmed':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      dateStyle: 'medium',
-      timeStyle: 'short'
-    }).format(date);
-  };
-
-  // Pagination logic
   const indexOfLastAppointment = currentPage * itemsPerPage;
   const indexOfFirstAppointment = indexOfLastAppointment - itemsPerPage;
-  const currentAppointments = filteredAppointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
-  const totalPages = Math.ceil(filteredAppointments.length / itemsPerPage);
+  const currentAppointments = searchFilteredAppointments.slice(indexOfFirstAppointment, indexOfLastAppointment);
+  const totalPages = Math.ceil(searchFilteredAppointments.length / itemsPerPage);
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -221,7 +208,7 @@ export default function AppointmentsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white p-6">
-        <h1 className="text-3xl font-bold mb-6">Appointment Management</h1>
+        <h1 className="text-3xl font-bold mb-6">Appointments Management</h1>
         <div className="flex items-center justify-center p-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
@@ -232,28 +219,44 @@ export default function AppointmentsPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white p-6">
+        <h1 className="text-3xl font-bold mb-6">Appointments Management</h1>
+        <div className="text-red-500 text-xl mb-4">{error}</div>
+        <button
+          onClick={() => router.refresh()}
+          className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-700">Appointment Management</h1>
+        <h1 className="text-3xl font-bold text-gray-700">Appointments Management</h1>
         
         <div className="flex items-center space-x-4">
-          {/* Date Filter */}
-          <select
-            value={dateFilter}
-            onChange={handleDateFilter}
-            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
-          >
-            <option value="all">All Dates</option>
-            <option value="today">Today</option>
-            <option value="tomorrow">Tomorrow</option>
-            <option value="week">Next 7 Days</option>
-            <option value="month">Next 30 Days</option>
-            <option value="past">Past Appointments</option>
-            <option value="upcoming">Upcoming Appointments</option>
-          </select>
-
-          {/* Search Input */}
+          <div className="relative">
+            <select
+              value={dateFilter}
+              onChange={(e) => handleDateFilterChange(e.target.value as DateFilter)}
+              className="appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
+            >
+              <option value="all">All Appointments</option>
+              <option value="today">Today</option>
+              <option value="tomorrow">Tomorrow</option>
+              <option value="next7days">Next 7 Days</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="recent">Most Recent</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+              <FaSort className="h-4 w-4" />
+            </div>
+          </div>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <FaSearch className="h-5 w-5 text-gray-400" />
@@ -262,20 +265,10 @@ export default function AppointmentsPage() {
               type="text"
               value={searchTerm}
               onChange={handleSearch}
-              placeholder="Search by pet name, service or client..."
+              placeholder="Search by pet name, service or status..."
               className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-64 text-gray-900 placeholder-gray-500"
             />
           </div>
-
-          {user?.role !== 'Admin' && (
-            <button 
-              onClick={() => router.push('/appointments/new')}
-              className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 flex items-center space-x-2"
-            >
-              <FaPlus />
-              <span>New Appointment</span>
-            </button>
-          )}
         </div>
       </div>
 
@@ -283,13 +276,10 @@ export default function AppointmentsPage() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Date and Time</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">ID</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Pet</th>
-              {user?.role === 'Admin' && (
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Client</th>
-              )}
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Service</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Veterinarian</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Date</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-900 uppercase tracking-wider">Actions</th>
             </tr>
@@ -298,69 +288,52 @@ export default function AppointmentsPage() {
             {currentAppointments.length > 0 ? (
               currentAppointments.map((appointment) => (
                 <tr key={appointment.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {formatDate(appointment.appointmentDate)}
-                    </div>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{appointment.id}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{appointment.pet.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{appointment.service.title}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {new Date(appointment.appointmentDate).toLocaleString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{appointment.pet.name}</div>
-                  </td>
-                  {user?.role === 'Admin' && (
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{appointment.user.name}</div>
-                    </td>
-                  )}
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{appointment.service.title}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      {appointment.veterinarian ? appointment.veterinarian.name : 'No assigned'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(appointment.status)}`}>
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      appointment.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                      appointment.status === 'Confirmed' ? 'bg-green-100 text-green-800' :
+                      appointment.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
                       {appointment.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-4">
                       <button
-                        onClick={() => handleViewAppointment(appointment)}
+                        onClick={() => setSelectedAppointment(appointment)}
                         className="text-emerald-600 hover:text-emerald-700 transition-colors"
                         title="View Details"
                       >
                         <FaEye size={18} />
                       </button>
-                      {(user?.role === 'Admin' || appointment.status === 'Pending') && (
-                        <>
-                          <button
-                            onClick={() => handleEditAppointment(appointment)}
-                            className="text-amber-600 hover:text-amber-700 transition-colors"
-                            title="Edit Appointment"
-                          >
-                            <FaEdit size={18} />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedAppointment(appointment);
-                              setShowDeleteConfirm(true);
-                            }}
-                            className="text-rose-500 hover:text-rose-600 transition-colors"
-                            title="Delete Appointment"
-                          >
-                            <FaTrash size={18} />
-                          </button>
-                        </>
-                      )}
+                      <button
+                        onClick={() => handleEdit(appointment)}
+                        className="text-amber-600 hover:text-amber-700 transition-colors"
+                        title="Edit Appointment"
+                      >
+                        <FaEdit size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(appointment.id)}
+                        className="text-rose-500 hover:text-rose-600 transition-colors"
+                        title="Delete Appointment"
+                      >
+                        <FaTrash size={18} />
+                      </button>
                     </div>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={7} className="px-6 py-4 text-center text-sm font-medium text-gray-900">
+                <td colSpan={6} className="px-6 py-4 text-center text-sm font-medium text-gray-900">
                   {searchTerm ? 'No appointments found matching your search' : 'No appointments registered'}
                 </td>
               </tr>
@@ -369,11 +342,10 @@ export default function AppointmentsPage() {
         </table>
       </div>
 
-      {/* Pagination */}
-      {filteredAppointments.length > 0 && (
+      {searchFilteredAppointments.length > 0 && (
         <div className="mt-4 flex items-center justify-between">
           <div className="text-sm text-gray-700">
-            Showing {indexOfFirstAppointment + 1} to {Math.min(indexOfLastAppointment, filteredAppointments.length)} of {filteredAppointments.length} appointments
+            Showing {indexOfFirstAppointment + 1} to {Math.min(indexOfLastAppointment, searchFilteredAppointments.length)} of {searchFilteredAppointments.length} appointments
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -405,55 +377,19 @@ export default function AppointmentsPage() {
         </div>
       )}
 
-      {/* Appointment Details Modal */}
-      {selectedAppointment && showDetailsModal && (
+      {selectedAppointment && (
         <AppointmentDetailsModal
           appointment={selectedAppointment}
-          onClose={() => {
-            setShowDetailsModal(false);
-            setSelectedAppointment(null);
-          }}
+          onClose={() => setSelectedAppointment(null)}
         />
       )}
 
-      {/* Edit Modal */}
-      {selectedAppointment && showEditModal && (
+      {editingAppointment && (
         <EditAppointmentModal
-          appointment={selectedAppointment}
-          onClose={() => {
-            setShowEditModal(false);
-            setSelectedAppointment(null);
-          }}
-          onSave={handleUpdateAppointment}
+          appointment={editingAppointment}
+          onClose={() => setEditingAppointment(null)}
+          onSave={handleSaveEdit}
         />
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && selectedAppointment && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Confirm Delete
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete this appointment? This action cannot be undone.
-            </p>
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDeleteAppointment(selectedAppointment)}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-md hover:bg-red-600"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

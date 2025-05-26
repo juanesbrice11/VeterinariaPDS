@@ -105,7 +105,7 @@ function UserProfile() {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-white via-white via-[35.1%] to-[#FFE9D2] to-[87.02%] p-6 text-black">
+            <div className={`min-h-screen ${user?.role === 'Veterinario' ? 'bg-white' : 'bg-gradient-to-b from-white via-white via-[35.1%] to-[#FFE9D2] to-[87.02%]'} p-6 text-black`}>
                 <h1 className="text-3xl font-bold mb-6 text-center">My Profile</h1>
                 <div className="flex items-center justify-center p-12">
                     <div className="text-center">
@@ -119,7 +119,7 @@ function UserProfile() {
 
     if (error) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-white via-white via-[35.1%] to-[#FFE9D2] to-[87.02%] p-6 text-black">
+            <div className={`min-h-screen ${user?.role === 'Veterinario' ? 'bg-white' : 'bg-gradient-to-b from-white via-white via-[35.1%] to-[#FFE9D2] to-[87.02%]'} p-6 text-black`}>
                 <h1 className="text-3xl font-bold mb-6 text-center">My Profile</h1>
                 <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-6">
                     <p className="text-red-500 mb-4">Error loading profile: {error}</p>
@@ -135,7 +135,7 @@ function UserProfile() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-white via-white via-[35.1%] to-[#FFE9D2] to-[87.02%] p-6 text-black">
+        <div className={`min-h-screen ${user?.role === 'Veterinario' ? 'bg-white' : 'bg-gradient-to-b from-white via-white via-[35.1%] to-[#FFE9D2] to-[87.02%]'} p-6 text-black`}>
             <h1 className="text-3xl font-bold mb-6 text-center">My Profile</h1>
 
             {userData ? (

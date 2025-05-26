@@ -352,6 +352,47 @@ export const updatePetAdmin = async (
     );
 };
 
+export const getAllPetsVet = async (token: string): Promise<{ success: boolean, message?: string, pets?: Pet[] }> => {
+    if (!token) {
+        return { success: false, message: "No active session" };
+    }
+
+    try {
+        const response = await createAuthenticatedRequest(
+            `${API_URL}/pets/vet/all`,
+            'GET',
+            token
+        );
+
+        console.log('Raw response from getAllPetsVet:', response);
+
+        if (response.success && Array.isArray(response.pets)) {
+            return {
+                success: true,
+                pets: response.pets
+            };
+        }
+
+        if (response.message) {
+            return {
+                success: false,
+                message: response.message
+            };
+        }
+
+        return { 
+            success: false, 
+            message: 'Formato de respuesta inesperado' 
+        };
+    } catch (error) {
+        console.error('Error in getAllPetsVet:', error);
+        return {
+            success: false,
+            message: error instanceof Error ? error.message : 'Error fetching pets'
+        };
+    }
+};
+
 const convertFileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();

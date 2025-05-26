@@ -4,7 +4,7 @@ import { Appointment } from '../models/appointment';
 import { Pet } from '../models/pet';
 import { Service } from '../models/Service';
 import { AuthenticatedRequest } from '../middlewares/authenticateToken';
-import { User } from '../models/User';
+import { User, UserRole } from '../models/User';
 import { Between, Not } from 'typeorm';
 
 export const createAppointment = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
@@ -483,7 +483,10 @@ export const updateAppointment = async (req: AuthenticatedRequest, res: Response
         if (veterinarianId) {
             const userRepo = AppDataSource.getRepository(User);
             const veterinarian = await userRepo.findOne({ 
-                where: { id: veterinarianId, role: 'Veterinario' }
+                where: { 
+                    id: veterinarianId, 
+                    role: UserRole.VETERINARIO 
+                }
             });
             if (!veterinarian) {
                 res.status(404).json({ message: "Veterinarian not found" });
