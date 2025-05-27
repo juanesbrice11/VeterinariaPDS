@@ -15,12 +15,15 @@ import { authorizeRoles } from "../middlewares/authorizeRoles";
 const router = Router();
 
 router.get("/", getUsers);
-router.get("/:id", authenticateToken, authorizeRoles('Admin'), getUserById);
 
+// Rutas /me primero
 router.get("/me", authenticateToken, getMyProfile);
 router.put("/me", authenticateToken, validateProfileUpdate, editProfile);
 router.patch("/me/password", authenticateToken, changePassword);
-router.put('/:documentNumber/role',authenticateToken, authorizeRoles('Admin'), updateUserRole);
+
+// Luego las rutas con parámetros
+router.get("/:id", authenticateToken, authorizeRoles('Admin'), getUserById);
+router.put('/:documentNumber/role', authenticateToken, authorizeRoles('Admin'), updateUserRole);
 router.delete('/:id', authenticateToken, authorizeRoles('Admin'), deleteUser);
 
 export default router;
